@@ -1,27 +1,50 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import Header from './components/Header';
+import Navbar from './components/navbar';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Import Pages
+import Investing from './pages/Investing';
+import Business from './pages/Business';
+import Earnings from './pages/Earnings';
+import Items from './pages/Items';
+import Profile from './pages/Profile';
+
+// Main content wrapper with theme background
+function AppContent() {
+  const { isDarkTheme } = useTheme();
 
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkTheme ? 'bg-gray-950' : 'bg-gray-50'
+    }`}>
+      <Header />
+      
+      {/* Main Content Area */}
+      <main className="pt-20 pb-24 px-4">
+        <Routes>
+          <Route path="/" element={<Earnings />} />
+          <Route path="/investing" element={<Investing />} />
+          <Route path="/business" element={<Business />} />
+          <Route path="/earnings" element={<Earnings />} />
+          <Route path="/items" element={<Items />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </main>
+      
+      <Navbar />
+    </div>
+  );
 }
 
-export default App
+const App = () => {
+  return (
+    <Router>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </Router>
+  );
+};
+
+export default App;

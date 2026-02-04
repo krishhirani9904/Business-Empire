@@ -1,128 +1,31 @@
 @import "tailwindcss";
-
- /*:root matlab HTML document nu root element Aahi custom colors define kari chi je aakha project ma use thase */
-
-:root {
-  --primary-gold: #FFD700;
-  --primary-dark: #1a1a2e;
-  --primary-purple: #6366f1;
-  --accent-green: #10b981;  
-  --accent-red: #ef4444;    
-}
-
-/* -webkit- prefix Chrome, Safari, Edge mate che(scrollbar)
- */
-::-webkit-scrollbar {
-  width: 6px; 
-}
-
-::-webkit-scrollbar-track {
-  background: #1a1a2e;  
-}
-
-::-webkit-scrollbar-thumb {
-  background: #6366f1;
-  border-radius: 3px;  
-}
-
-/* @keyframes thi custom animations banavi saki chi */
-/* Gold Glow Effect*/
-@keyframes pulse-gold {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);  
+/* Floating text animation for clicker */
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
-  50% { 
-    box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);  
+  50% {
+    opacity: 0.8;
+    transform: translateY(-40px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.9);
   }
 }
 
-/* Floating Effect - Upar niche movement */
-@keyframes float {
-  0%, 100% { 
-    transform: translateY(0);      
+.animate-float-up {
+  animation: float-up 1s ease-out forwards;
+}
+/* Safe area support for devices with notches/home indicators */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Custom height values if using Tailwind config */
+@layer utilities {
+  .h-18 {
+    height: 4.5rem; /* 72px */
   }
-  50% { 
-    transform: translateY(-10px);  
-  }
-}
-
-/* Coin Spinning Effect - Y-axis rotation */
-@keyframes coin-spin {
-  from { 
-    transform: rotateY(0deg);      
-  }
-  to { 
-    transform: rotateY(360deg);    
-  }
-}
-
-/* Aa classes directly HTML elements par lagavi shakay */
-
-.animate-pulse-gold {
-  animation: pulse-gold 2s infinite;  
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-/* Coin flip animation */
-.animate-coin-spin {
-  animation: coin-spin 1s ease-in-out;  
-}
-
-.glass {
-  background: rgba(255, 255, 255, 0.05);  
-  backdrop-filter: blur(10px);             
-  border: 1px solid rgba(255, 255, 255, 0.1);  
-}
-
-/* Main game background - Dark theme */
-.bg-gradient-game {
-  background: linear-gradient(
-    135deg, 
-    #1a1a2e 0%,      
-    #16213e 50%,     
-    #0f3460 100%     
-  );
-}
-
-.bg-gradient-gold {
-  background: linear-gradient(
-    135deg, 
-    #FFD700 0%,     
-    #FFA500 100%    
-  );
-}
-
-/* Different membership/reward card levels mate */
-
-/* Silver Card - Basic tier */
-.bg-gradient-card-silver {
-  background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
-}
-
-/* Gold Card - Premium tier */
-.bg-gradient-card-gold {
-  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
-}
-
-/* Platinum Card - Elite tier */
-.bg-gradient-card-platinum {
-  background: linear-gradient(135deg, #E5E4E2 0%, #BCC6CC 100%);
-}
-
-/* Black Card - VIP tier */
-.bg-gradient-card-black {
-  background: linear-gradient(135deg, #2C3E50 0%, #000000 100%);
-}
-
-/* Diamond Card - Ultimate tier */
-.bg-gradient-card-diamond {
-  background: linear-gradient(
-    135deg, 
-    #b9f2ff 0%,      
-    #00CED1 50%,     
-    #4169E1 100%     
-  );
 }
