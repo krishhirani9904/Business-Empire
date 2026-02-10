@@ -53,7 +53,7 @@ function Earnings() {
       textPrimary: 'text-white'
     },
     light: {
-      bg: 'bg-gray-100',
+      bg: 'bg-gray-0',
       textPrimary: 'text-gray-900'
     }
   };
@@ -62,7 +62,7 @@ function Earnings() {
 
   return (
     <div className={`min-h-screen ${c.bg} transition-colors duration-300`}>
-      <div className="w-full max-w-lg mx-auto pt-2">
+      <div className="w-full max-w-full mx-auto pt-2">
         
         {/* Page Title */}
         <div className="mb-4 text-center">

@@ -24,7 +24,7 @@ function Header() {
 
   return (
     <header className={`fixed rounded-b-3xl top-0 left-0 right-0 ${colors.headerBg} border-b-2 ${colors.borderColor} transition-colors duration-300 z-50`}>
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-full mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           
           {/* Logo & Title */}

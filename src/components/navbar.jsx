@@ -96,7 +96,7 @@ function Navbar() {
         safe-area-bottom
       `}
     >
-      <nav className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      <nav className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
         <ul className="flex justify-around items-center h-16 sm:h-18 md:h-20">
           {menuItems.map((item) => {
             const Icon = item.icon;

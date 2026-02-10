@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndianRupee, Sparkles } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -21,6 +21,32 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
   };
 
   const c = isDarkTheme ? colors.dark : colors.light;
+
+  // Inject keyframes into document head
+  useEffect(() => {
+    const styleId = 'clicker-zone-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes floatUp {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: translateY(-30px) scale(1.1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-60px) scale(0.9);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   const handleClick = (e) => {
     setScale(0.92);
@@ -119,24 +145,6 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
           {isBoosted ? '⚡ Boost Active!' : `Tap to earn ₹${perClick}`}
         </p>
       </div>
-
-      {/* CSS Animation */}
-      <style jsx>{`
-        @keyframes floatUp {
-          0% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-          50% {
-            opacity: 0.8;
-            transform: translateY(-30px) scale(1.1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-60px) scale(0.9);
-          }
-        }
-      `}</style>
     </div>
   );
 };

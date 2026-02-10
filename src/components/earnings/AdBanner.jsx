@@ -123,19 +123,19 @@ const AdBanner = ({ onAdComplete, adDuration = 5 }) => {
       {/* Full Width Fixed Banner - Like Navbar */}
       <div 
         className={`
-          fixed bottom-16 sm:bottom-18 md:bottom-20 left-0 right-0 
+          fixed bottom-16 sm:bottom-18 md:bottom-20 left-0 right-0
           ${c.cardBg} 
           border-t ${c.cardBorder}
           transition-all duration-300 
           z-40
         `}
       >
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
           
           {/* Idle State - Banner */}
           {adState === 'idle' && (
             <div 
-              className="py-2 sm:py-3 cursor-pointer"
+              className="py-1 sm:py-3 cursor-pointer"
               onClick={handleStartAd}
             >
               <div className="flex items-center justify-between gap-2 sm:gap-4">
