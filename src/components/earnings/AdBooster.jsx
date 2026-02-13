@@ -6,7 +6,6 @@ const AdBooster = ({ onBoostActivate }) => {
   const { isDarkTheme } = useTheme();
   const [adStatus, setAdStatus] = useState('idle');
   const [timer, setTimer] = useState(0);
-  
   const timerRef = useRef(null);
 
   const colors = {
@@ -34,36 +33,43 @@ const AdBooster = ({ onBoostActivate }) => {
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // Timer Logic
+  // Fixed: Single timer effect with proper cleanup
   useEffect(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
-    if ((adStatus === 'watching' || adStatus === 'boosted') && timer > 0) {
+    if (timer > 0) {
       timerRef.current = setInterval(() => {
-        setTimer(prev => prev - 1);
+        setTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+
+            if (adStatus === 'watching') {
+              setAdStatus('boosted');
+              onBoostActivate(true);
+              return 60; // Start boost timer
+            } else if (adStatus === 'boosted') {
+              setAdStatus('idle');
+              onBoostActivate(false);
+              return 0;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
 
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, [adStatus]);
-
-  // Handle timer completion
-  useEffect(() => {
-    if (adStatus === 'watching' && timer === 0) {
-      setAdStatus('boosted');
-      setTimer(60);
-      onBoostActivate(true);
-    } else if (adStatus === 'boosted' && timer === 0) {
-      setAdStatus('idle');
-      onBoostActivate(false);
-    }
-  }, [timer, adStatus, onBoostActivate]);
+  }, [adStatus, timer > 0]); // Only re-run when status changes or timer starts/stops
 
   const startAd = () => {
     setAdStatus('watching');

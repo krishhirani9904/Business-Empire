@@ -10,6 +10,7 @@ import BusinessList from '../components/business/BusinessList';
 import BusinessDetailModal from '../components/business/BusinessDetailModal';
 import MergerPanel from '../components/business/MergerPanel';
 import OwnedBusinessList from '../components/business/OwnedBusinessList';
+import OwnedBusinessDetailModal from '../components/business/OwnedBusinessDetailModal';
 import AdBanner from '../components/earnings/AdBanner';
 
 // Import Data
@@ -23,6 +24,7 @@ function Business() {
   const [ownedBusinesses, setOwnedBusinesses] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+  const [selectedOwnedBusiness, setSelectedOwnedBusiness] = useState(null);
   const [isBoostActive, setIsBoostActive] = useState(false);
   const [mergedBusinesses, setMergedBusinesses] = useState([]);
 
@@ -48,7 +50,6 @@ function Business() {
       return sum + (owned.incomePerHour || 0);
     }, 0);
 
-    // Apply merger bonuses
     mergedBusinesses.forEach(mergerId => {
       const merger = MERGER_OPTIONS.find(m => m.id === mergerId);
       if (merger) {
@@ -56,7 +57,6 @@ function Business() {
       }
     });
 
-    // Apply boost
     if (isBoostActive) {
       total = total * 2;
     }
@@ -79,13 +79,13 @@ function Business() {
     setActiveTab(tab);
   };
 
-  // Handle Select Business
+  // Handle Select Business (for buying)
   const handleSelectBusiness = (business) => {
     setSelectedBusiness(business);
   };
 
   // Handle Buy Business
-  const handleBuyBusiness = (business, size) => {
+  const handleBuyBusiness = (business, size, customName) => {
     const cost = size.cost;
     if (balance >= cost) {
       setBalance(prev => prev - cost);
@@ -94,11 +94,42 @@ function Business() {
         businessId: business.id,
         businessName: business.name,
         sizeType: size.type,
+        customName: customName || `${size.type} ${business.name}`,
         incomePerHour: size.incomePerHour,
-        purchasedAt: new Date()
+        cost: cost,
+        purchasedAt: new Date().toISOString()
       }]);
       setSelectedBusiness(null);
     }
+  };
+
+  // Handle Select Owned Business (for viewing details)
+  const handleSelectOwnedBusiness = (ownedBusiness) => {
+    setSelectedOwnedBusiness(ownedBusiness);
+  };
+
+  // Handle Update Business Name
+  const handleUpdateBusinessName = (businessId, newName) => {
+    setOwnedBusinesses(prev => 
+      prev.map(b => 
+        b.id === businessId 
+          ? { ...b, customName: newName } 
+          : b
+      )
+    );
+    // Update selected business reference too
+    setSelectedOwnedBusiness(prev => 
+      prev && prev.id === businessId 
+        ? { ...prev, customName: newName } 
+        : prev
+    );
+  };
+
+  // Handle Sell Business
+  const handleSellBusiness = (businessId, sellPrice) => {
+    setBalance(prev => prev + sellPrice);
+    setOwnedBusinesses(prev => prev.filter(b => b.id !== businessId));
+    setSelectedOwnedBusiness(null);
   };
 
   // Handle Merge
@@ -155,7 +186,7 @@ function Business() {
           />
         )}
 
-        {/* Business Detail Modal */}
+        {/* Business Detail Modal (Buy) */}
         {selectedBusiness && (
           <BusinessDetailModal
             business={selectedBusiness}
@@ -163,6 +194,16 @@ function Business() {
             ownedCount={getOwnedCount(selectedBusiness.id)}
             onBuy={handleBuyBusiness}
             onClose={() => setSelectedBusiness(null)}
+          />
+        )}
+
+        {/* Owned Business Detail Modal (View/Edit/Sell) */}
+        {selectedOwnedBusiness && (
+          <OwnedBusinessDetailModal
+            ownedBusiness={selectedOwnedBusiness}
+            onClose={() => setSelectedOwnedBusiness(null)}
+            onUpdateName={handleUpdateBusinessName}
+            onSell={handleSellBusiness}
           />
         )}
 
@@ -179,11 +220,12 @@ function Business() {
         <OwnedBusinessList 
           ownedBusinesses={ownedBusinesses}
           totalIncome={calculateTotalIncome()}
+          onSelectOwned={handleSelectOwnedBusiness}
         />
 
       </div>
 
-      {/* Ad Banner - Fixed above Navbar */}
+      {/* Ad Banner */}
       <AdBanner 
         onAdComplete={handleAdComplete}
         adDuration={5}

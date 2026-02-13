@@ -1,14 +1,30 @@
-import { createContext, useContext, useState } from 'react';
+// src/context/ThemeContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
 
-// Create context
 const ThemeContext = createContext();
 
-// Theme provider component
+const THEME_KEY = 'business_samrajya_theme';
+
 export function ThemeProvider({ children }) {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_KEY, JSON.stringify(isDarkTheme));
+    } catch (e) {
+      console.error('Error saving theme:', e);
+    }
+  }, [isDarkTheme]);
 
   const toggleTheme = () => {
-    setIsDarkTheme(!isDarkTheme);
+    setIsDarkTheme(prev => !prev);
   };
 
   return (
@@ -18,7 +34,6 @@ export function ThemeProvider({ children }) {
   );
 }
 
-// Custom hook to use theme
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {

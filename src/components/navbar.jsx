@@ -1,4 +1,3 @@
-// components/Navbar.jsx
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -117,7 +116,7 @@ function Navbar() {
                   aria-label={item.name}
                   aria-current={active ? 'page' : undefined}
                 >
-                  {/* Icon Container - Responsive sizing */}
+                  {/* Icon Container */}
                   <div 
                     className={`
                       p-1.5 sm:p-2 md:p-2.5
@@ -141,7 +140,7 @@ function Navbar() {
                     />
                   </div>
                   
-                  {/* Label - Responsive text */}
+                  {/* Label */}
                   <span 
                     className={`
                       text-[10px] sm:text-xs md:text-sm
