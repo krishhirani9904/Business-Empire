@@ -1,30 +1,37 @@
-// src/components/investing/CryptoTab.jsx
-import React, { useState, useMemo } from 'react';
-import { Wallet, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+// ============================================
+// 📄 FILE: src/components/investing/CryptoTab.jsx
+// 🎯 PURPOSE: Portfolio + Buy list + Owned list with scroll
+// 🔧 FIX Bug #7: MiniChart uses currentPrice + refresh key
+// ============================================
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { Wallet, ShoppingCart, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useGame } from '../../context/GameContext';
-import { CRYPTOCURRENCIES, formatINR, formatMarketCap } from './investingData';
+import { CRYPTOCURRENCIES, formatINR } from './investingData';
 import MiniChart from './MiniChart';
 import CryptoDetailModal from './CryptoDetailModal';
-
-const INITIAL_ITEMS = 5;
 
 function CryptoTab() {
   const { isDarkTheme } = useTheme();
   const { ownedCrypto, getCryptoPrice } = useGame();
-  const [filter, setFilter] = useState('hot');
+
   const [selectedCrypto, setSelectedCrypto] = useState(null);
-  const [expandedSection, setExpandedSection] = useState(null);
-  
-  // Show more states
-  const [showAllCoins, setShowAllCoins] = useState(false);
-  const [showAllMarket, setShowAllMarket] = useState(false);
+  const [showBuyList, setShowBuyList] = useState(false);
+  const [cryptoFilter, setCryptoFilter] = useState('all');
+  const [ownedCryptoSort, setOwnedCryptoSort] = useState('value');
 
-  const toggleSection = (section) => {
-    setExpandedSection(prev => prev === section ? null : section);
-  };
+  // 🔧 FIX Bug #7: Refresh key for charts (updates every 30s)
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
-  // Total crypto portfolio value
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setChartRefreshKey(prev => prev + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ========== CALCULATIONS ==========
   const totalCryptoValue = useMemo(() => {
     return ownedCrypto.reduce((sum, owned) => {
       const currentPrice = getCryptoPrice(owned.cryptoId);
@@ -33,33 +40,29 @@ function CryptoTab() {
   }, [ownedCrypto, getCryptoPrice]);
 
   const totalCryptoInvested = useMemo(() => {
-    return ownedCrypto.reduce((sum, owned) => sum + (owned.avgBuyPrice * owned.quantity), 0);
+    return ownedCrypto.reduce(
+      (sum, owned) => sum + (owned.avgBuyPrice * owned.quantity),
+      0
+    );
   }, [ownedCrypto]);
 
   const cryptoPL = totalCryptoValue - totalCryptoInvested;
-  const cryptoPLPercent = totalCryptoInvested > 0 ? ((cryptoPL / totalCryptoInvested) * 100).toFixed(2) : 0;
+  const cryptoPLPercent = totalCryptoInvested > 0
+    ? ((cryptoPL / totalCryptoInvested) * 100).toFixed(2)
+    : 0;
 
-  const filters = [
-    { id: 'hot', label: 'Hot', icon: '🔥' },
-    { id: 'gainer', label: 'Gainers', icon: '📈' },
-    { id: 'loser', label: 'Losers', icon: '📉' },
-    { id: 'highCap', label: 'Highest Cap', icon: '💎' },
-    { id: 'lowCap', label: 'Lowest Cap', icon: '🪙' },
-    { id: 'highPrice', label: 'High Price', icon: '💰' },
-    { id: 'lowPrice', label: 'Low Price', icon: '🏷️' }
-  ];
-
+  // ========== FILTERED CRYPTO ==========
   const filteredCrypto = useMemo(() => {
     let list = [...CRYPTOCURRENCIES];
-    switch (filter) {
+    switch (cryptoFilter) {
       case 'hot':
-        list = list.filter(c => c.category === 'hot');
+        list = list.filter(cr => cr.category === 'hot');
         break;
       case 'gainer':
-        list = list.filter(c => c.category === 'gainer').sort((a, b) => b.change24h - a.change24h);
+        list = list.filter(cr => cr.category === 'gainer').sort((a, b) => b.change24h - a.change24h);
         break;
       case 'loser':
-        list = list.filter(c => c.category === 'loser').sort((a, b) => a.change24h - b.change24h);
+        list = list.filter(cr => cr.category === 'loser').sort((a, b) => a.change24h - b.change24h);
         break;
       case 'highCap':
         list.sort((a, b) => b.marketCap - a.marketCap);
@@ -77,236 +80,306 @@ function CryptoTab() {
         break;
     }
     return list;
-  }, [filter, getCryptoPrice]);
+  }, [cryptoFilter, getCryptoPrice]);
 
-  const renderCryptoCard = (crypto) => {
-    const currentPrice = getCryptoPrice(crypto.id) || crypto.price;
-    const change = currentPrice - crypto.price;
-    const changePercent = ((change / crypto.price) * 100).toFixed(1);
-    const isUp = change >= 0;
-    const owned = ownedCrypto.find(c => c.cryptoId === crypto.id);
+  // ========== SORTED OWNED ==========
+  const sortedOwnedCrypto = useMemo(() => {
+    if (ownedCrypto.length === 0) return [];
 
-    return (
-      <button
-        key={crypto.id}
-        onClick={() => setSelectedCrypto(crypto)}
-        className={`w-full p-3 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99] text-left ${
-          isDarkTheme ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-800' : 'bg-white border-gray-200 hover:bg-gray-50'
-        } ${owned ? (isDarkTheme ? 'ring-1 ring-blue-800' : 'ring-1 ring-blue-300') : ''}`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-2xl flex-shrink-0">{crypto.logo}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className={`text-sm font-bold truncate ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{crypto.name}</p>
-                {owned && <span className="text-[9px] bg-blue-500/20 text-blue-500 px-1.5 py-0.5 rounded-full font-medium">OWNED</span>}
-              </div>
-              <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{crypto.symbol}</p>
-            </div>
+    let sorted = ownedCrypto.map(owned => {
+      const crypto = CRYPTOCURRENCIES.find(cr => cr.id === owned.cryptoId);
+      const currentPrice = getCryptoPrice(owned.cryptoId);
+      const value = currentPrice * owned.quantity;
+      const pl = (currentPrice - owned.avgBuyPrice) * owned.quantity;
+      const plPercent = owned.avgBuyPrice > 0
+        ? ((pl / (owned.avgBuyPrice * owned.quantity)) * 100)
+        : 0;
+      return { ...owned, crypto, currentPrice, value, pl, plPercent };
+    }).filter(item => item.crypto);
+
+    switch (ownedCryptoSort) {
+      case 'value':
+        sorted.sort((a, b) => b.value - a.value);
+        break;
+      case 'profitFirst':
+        sorted.sort((a, b) => b.pl - a.pl);
+        break;
+      case 'lossFirst':
+        sorted.sort((a, b) => a.pl - b.pl);
+        break;
+      case 'quantityHigh':
+        sorted.sort((a, b) => b.quantity - a.quantity);
+        break;
+      case 'quantityLow':
+        sorted.sort((a, b) => a.quantity - b.quantity);
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  }, [ownedCrypto, getCryptoPrice, ownedCryptoSort]);
+
+  // ========== THEME COLORS ==========
+  const colors = isDarkTheme
+    ? {
+        cardBg: 'bg-gray-800/50', border: 'border-gray-700',
+        text: 'text-white', textSec: 'text-gray-400',
+        inner: 'bg-gray-800'
+      }
+    : {
+        cardBg: 'bg-white', border: 'border-gray-200',
+        text: 'text-gray-900', textSec: 'text-gray-500',
+        inner: 'bg-gray-50'
+      };
+
+  // ========== OPTIONS ==========
+  const cryptoFilterOptions = [
+    { id: 'all', label: 'All', icon: '📋' },
+    { id: 'hot', label: 'Hot', icon: '🔥' },
+    { id: 'gainer', label: 'Gainers', icon: '📈' },
+    { id: 'loser', label: 'Losers', icon: '📉' },
+    { id: 'highCap', label: 'Highest Cap', icon: '💎' },
+    { id: 'lowCap', label: 'Lowest Cap', icon: '🪙' },
+    { id: 'highPrice', label: 'High Price', icon: '💰' },
+    { id: 'lowPrice', label: 'Low Price', icon: '🏷️' }
+  ];
+
+  const ownedSortOptions = [
+    { value: 'value', label: 'By Value' },
+    { value: 'profitFirst', label: 'Profit First' },
+    { value: 'lossFirst', label: 'Loss First' },
+    { value: 'quantityHigh', label: 'Most Coins' },
+    { value: 'quantityLow', label: 'Least Coins' }
+  ];
+
+  return (
+    <div className="px-2 space-y-4">
+
+      {/* PORTFOLIO CARD */}
+      <div className={`p-4 rounded-2xl border ${
+        isDarkTheme
+          ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+          : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+      }`}>
+        <div className="flex items-center gap-2 mb-1">
+          <Wallet className="w-5 h-5 text-blue-500" />
+          <p className={`text-xs ${colors.textSec}`}>Crypto Portfolio</p>
+        </div>
+        <p className={`text-2xl font-bold ${colors.text}`}>{formatINR(totalCryptoValue)}</p>
+
+        <div className="flex items-center gap-3 mt-1">
+          <span className={`text-sm font-medium ${cryptoPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {cryptoPL >= 0 ? '+' : ''}{formatINR(cryptoPL)} ({cryptoPLPercent}%)
+          </span>
+          <span className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>
+            Total P&L
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className={`p-2 rounded-lg ${colors.inner}`}>
+            <p className={`text-[10px] ${colors.textSec}`}>Invested</p>
+            <p className={`text-xs font-bold ${colors.text}`}>{formatINR(totalCryptoInvested)}</p>
           </div>
+          <div className={`p-2 rounded-lg ${colors.inner}`}>
+            <p className={`text-[10px] ${colors.textSec}`}>Coins Owned</p>
+            <p className={`text-xs font-bold ${colors.text}`}>{ownedCrypto.length}</p>
+          </div>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <MiniChart basePrice={crypto.price} volatility={crypto.volatility} width={60} height={25} />
-            <div className="text-right">
-              <p className={`text-sm font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{formatINR(currentPrice)}</p>
-              <p className={`text-[10px] font-medium ${isUp ? 'text-green-500' : 'text-red-500'}`}>
-                {isUp ? '+' : ''}{changePercent}%
+      {/* BUY CRYPTO SECTION */}
+      <div>
+        <button
+          onClick={() => setShowBuyList(prev => !prev)}
+          className={`w-full p-4 rounded-2xl border flex items-center justify-between transition-all
+            hover:scale-[1.01] active:scale-[0.99] ${colors.cardBg} ${colors.border}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+              <ShoppingCart className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className={`text-sm font-bold ${colors.text}`}>Buy Cryptocurrency</h3>
+              <p className={`text-[11px] ${colors.textSec}`}>
+                {CRYPTOCURRENCIES.length} coins available
               </p>
             </div>
           </div>
-        </div>
-      </button>
-    );
-  };
-
-  // View More Button Component
-  const ViewMoreButton = ({ shown, total, isExpanded, onToggle }) => {
-    if (total <= INITIAL_ITEMS) return null;
-    
-    return (
-      <button
-        onClick={onToggle}
-        className={`w-full py-2.5 mt-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-          isDarkTheme 
-            ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700' 
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
-        }`}
-      >
-        <Eye className="w-4 h-4" />
-        {isExpanded ? `Show Less` : `View All ${total} Items`}
-        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-    );
-  };
-
-  // Section Card
-  const SectionCard = ({ id, icon: Icon, emoji, title, subtitle, accentColor, children }) => {
-    const isExpanded = expandedSection === id;
-
-    return (
-      <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
-        isDarkTheme ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-      }`}>
-        <button
-          onClick={() => toggleSection(id)}
-          className="w-full p-4 flex items-center justify-between text-left transition-all hover:opacity-90"
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-              accentColor === 'blue' ? 'bg-blue-500/15' : 'bg-purple-500/15'
-            }`}>
-              {emoji ? <span className="text-xl">{emoji}</span> :
-                <Icon className={`w-5 h-5 ${
-                  accentColor === 'blue' ? 'text-blue-500' : 'text-purple-500'
-                }`} />
-              }
-            </div>
-            <div>
-              <p className={`text-sm font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{title}</p>
-              <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{subtitle}</p>
-            </div>
-          </div>
-          <div className={`p-1.5 rounded-full transition-transform duration-300 ${
-            isExpanded ? 'rotate-180' : ''
-          } ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-            <ChevronDown className="w-5 h-5" />
-          </div>
+          <span className={`text-lg ${colors.textSec}`}>
+            {showBuyList ? '▲' : '▼'}
+          </span>
         </button>
 
-        {isExpanded && (
-          <div className={`px-4 pb-4 border-t ${isDarkTheme ? 'border-gray-800' : 'border-gray-100'}`}>
-            <div className="pt-3">{children}</div>
-          </div>
-        )}
-      </div>
-    );
-  };
+        {showBuyList && (
+          <div className="mt-3">
+            {/* Filter Chips */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+              {cryptoFilterOptions.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setCryptoFilter(f.id)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium whitespace-nowrap transition-all ${
+                    cryptoFilter === f.id
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                      : isDarkTheme
+                        ? 'bg-gray-700 text-gray-400'
+                        : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <span>{f.icon}</span>
+                  {f.label}
+                </button>
+              ))}
+            </div>
 
-  // Get displayed items
-  const displayedOwnedCoins = showAllCoins ? ownedCrypto : ownedCrypto.slice(0, INITIAL_ITEMS);
-  const displayedMarketCrypto = showAllMarket ? filteredCrypto : filteredCrypto.slice(0, INITIAL_ITEMS);
-
-  return (
-    <div className="px-2 space-y-3">
-      {/* Portfolio Summary */}
-      <div className={`p-4 rounded-2xl border ${isDarkTheme ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'}`}>
-        <div className="flex items-center gap-2 mb-1">
-          <Wallet className="w-5 h-5 text-blue-500" />
-          <p className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>Total Cryptocurrency Value</p>
-        </div>
-        <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{formatINR(totalCryptoValue)}</p>
-        <p className={`text-sm font-medium mt-0.5 ${cryptoPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {cryptoPL >= 0 ? '+' : ''}{formatINR(cryptoPL)} ({cryptoPLPercent}%)
-        </p>
-      </div>
-
-      {/* ====== My Coins Section ====== */}
-      <SectionCard
-        id="mycoins"
-        emoji="🪙"
-        title="My Coins"
-        subtitle={`${ownedCrypto.length} coins · ${formatINR(totalCryptoValue)}`}
-        accentColor="blue"
-      >
-        {ownedCrypto.length > 0 ? (
-          <>
-            <div className="space-y-2">
-              {displayedOwnedCoins.map(owned => {
-                const crypto = CRYPTOCURRENCIES.find(c => c.id === owned.cryptoId);
-                if (!crypto) return null;
-                const currentPrice = getCryptoPrice(owned.cryptoId) || crypto.price;
-                const value = currentPrice * owned.quantity;
-                const pl = (currentPrice - owned.avgBuyPrice) * owned.quantity;
-                const isUp = pl >= 0;
+            {/* Scrollable Buy List */}
+            <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide pr-1">
+              {filteredCrypto.map(crypto => {
+                const currentPrice = getCryptoPrice(crypto.id) || crypto.price;
+                const change = currentPrice - crypto.price;
+                const changePercent = ((change / crypto.price) * 100).toFixed(1);
+                const isUp = change >= 0;
+                const ownedCoin = ownedCrypto.find(oc => oc.cryptoId === crypto.id);
 
                 return (
                   <button
-                    key={owned.cryptoId}
+                    key={crypto.id}
                     onClick={() => setSelectedCrypto(crypto)}
-                    className={`w-full p-3 rounded-xl border text-left transition-all hover:scale-[1.01] ${
-                      isDarkTheme ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'
-                    }`}
+                    className={`w-full p-3 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99] text-left
+                      ${colors.cardBg} ${colors.border}
+                      ${ownedCoin ? (isDarkTheme ? 'ring-1 ring-blue-800' : 'ring-1 ring-blue-300') : ''}`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{crypto.logo}</span>
-                        <div>
-                          <p className={`text-sm font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{crypto.symbol}</p>
-                          <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>{owned.quantity} units</p>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="text-2xl flex-shrink-0">{crypto.logo}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm font-bold truncate ${colors.text}`}>{crypto.name}</p>
+                            {ownedCoin && (
+                              <span className="text-[9px] bg-blue-500/20 text-blue-500 px-1.5 py-0.5 rounded-full font-medium">
+                                OWNED
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {crypto.symbol}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`text-sm font-bold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{formatINR(value)}</p>
-                        <p className={`text-[10px] font-medium ${isUp ? 'text-green-500' : 'text-red-500'}`}>
-                          {isUp ? '+' : ''}{formatINR(pl)}
-                        </p>
+
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {/* 🔧 FIX Bug #7: MiniChart with currentPrice + refresh key */}
+                        <MiniChart
+                          basePrice={currentPrice}
+                          volatility={crypto.volatility}
+                          width={60}
+                          height={25}
+                          key={`${crypto.id}-${chartRefreshKey}`}
+                        />
+                        <div className="text-right">
+                          <p className={`text-sm font-bold ${colors.text}`}>{formatINR(currentPrice)}</p>
+                          <p className={`text-[10px] font-medium ${isUp ? 'text-green-500' : 'text-red-500'}`}>
+                            {isUp ? '+' : ''}{changePercent}%
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </button>
                 );
               })}
+
+              {filteredCrypto.length === 0 && (
+                <div className={`text-center py-6 rounded-xl ${
+                  isDarkTheme ? 'bg-gray-800/30' : 'bg-gray-50'
+                }`}>
+                  <p className={`text-sm ${colors.textSec}`}>No coins match this filter</p>
+                </div>
+              )}
             </div>
-            
-            <ViewMoreButton 
-              shown={displayedOwnedCoins.length}
-              total={ownedCrypto.length}
-              isExpanded={showAllCoins}
-              onToggle={() => setShowAllCoins(!showAllCoins)}
-            />
-          </>
-        ) : (
-          <div className={`text-center py-6 rounded-xl ${isDarkTheme ? 'bg-gray-800/30' : 'bg-gray-50'}`}>
-            <p className="text-3xl mb-2">🪙</p>
-            <p className={`text-xs font-medium ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>No coins owned yet</p>
-            <p className={`text-[10px] ${isDarkTheme ? 'text-gray-600' : 'text-gray-400'}`}>Explore Crypto Market below</p>
           </div>
         )}
-      </SectionCard>
+      </div>
 
-      {/* ====== Crypto Market Section ====== */}
-      <SectionCard
-        id="cryptomarket"
-        emoji="📊"
-        title="Crypto Market"
-        subtitle={`${CRYPTOCURRENCIES.length} cryptocurrencies`}
-        accentColor="purple"
-      >
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap lg:flex-nowrap gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hide">
-          {filters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => {
-                setFilter(f.id);
-                setShowAllMarket(false); // Reset when filter changes
-              }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium whitespace-nowrap transition-all flex-shrink-0 lg:flex-1 lg:justify-center ${
-                filter === f.id
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
-                  : isDarkTheme ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <span>{f.icon}</span>
-              {f.label}
-            </button>
-          ))}
+      {/* MY COINS SECTION */}
+      <div>
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+            <Wallet className="w-4 h-4 text-white" />
+          </div>
         </div>
 
-        {/* Crypto List */}
-        <div className="space-y-2">
-          {displayedMarketCrypto.map(crypto => renderCryptoCard(crypto))}
-        </div>
-        
-        <ViewMoreButton 
-          shown={displayedMarketCrypto.length}
-          total={filteredCrypto.length}
-          isExpanded={showAllMarket}
-          onToggle={() => setShowAllMarket(!showAllMarket)}
-        />
-      </SectionCard>
+        {ownedCrypto.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+            {ownedSortOptions.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setOwnedCryptoSort(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
+                  ownedCryptoSort === opt.value
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : isDarkTheme ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-      {/* Detail Modal */}
+        {sortedOwnedCrypto.length > 0 ? (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide pr-1">
+            {sortedOwnedCrypto.map(item => {
+              const isUp = item.pl >= 0;
+
+              return (
+                <button
+                  key={item.cryptoId}
+                  onClick={() => setSelectedCrypto(item.crypto)}
+                  className={`w-full p-3 rounded-xl border text-left transition-all hover:scale-[1.01]
+                    ${colors.cardBg} ${colors.border}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{item.crypto.logo}</span>
+                      <div>
+                        <p className={`text-sm font-bold ${colors.text}`}>{item.crypto.name}</p>
+                        <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {item.quantity} {item.crypto.symbol} @ {formatINR(item.avgBuyPrice)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${colors.text}`}>{formatINR(item.value)}</p>
+                      <div className="flex items-center justify-end gap-1">
+                        {isUp
+                          ? <TrendingUp className="w-3 h-3 text-green-500" />
+                          : <TrendingDown className="w-3 h-3 text-red-500" />
+                        }
+                        <p className={`text-[10px] font-medium ${isUp ? 'text-green-500' : 'text-red-500'}`}>
+                          {isUp ? '+' : ''}{formatINR(item.pl)} ({item.plPercent.toFixed(1)}%)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={`text-center py-8 rounded-2xl border ${
+            isDarkTheme ? 'bg-gray-800/30 border-gray-800' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <Wallet className={`w-12 h-12 mx-auto mb-2 ${isDarkTheme ? 'text-gray-600' : 'text-gray-300'}`} />
+            <p className={`text-sm font-medium ${colors.textSec}`}>No crypto owned yet</p>
+            <p className={`text-xs ${isDarkTheme ? 'text-gray-600' : 'text-gray-400'}`}>
+              Buy cryptocurrency from the list above
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* CRYPTO DETAIL MODAL */}
       {selectedCrypto && (
         <CryptoDetailModal
           crypto={selectedCrypto}

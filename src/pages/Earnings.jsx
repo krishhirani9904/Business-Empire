@@ -8,21 +8,21 @@ import AdBanner from '../components/earnings/AdBanner';
 
 function Earnings() {
   const { isDarkTheme } = useTheme();
+
   const {
     balance,
     level,
     upgradeCost,
     currentPerClick,
-    isBoostActive,
+    earningsBoostActive,
     handleTap,
     handleUpgrade,
-    handleBoostChange,
     addBonus
   } = useGame();
 
   const colors = {
     dark: { bg: 'bg-gray-950', textPrimary: 'text-white' },
-    light: { bg: 'bg-gray-000', textPrimary: 'text-gray-900' }
+    light: { bg: 'bg-white', textPrimary: 'text-gray-900' }
   };
 
   const c = isDarkTheme ? colors.dark : colors.light;
@@ -30,7 +30,7 @@ function Earnings() {
   return (
     <div className={`min-h-screen ${c.bg} transition-colors duration-300 pb-2`}>
       <div className="max-w-full mx-auto pt-2">
-        
+
         <div className="mb-4 text-center">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
             <span className={c.textPrimary}>Navo </span>
@@ -44,7 +44,7 @@ function Earnings() {
         <StatsDisplay
           balance={balance}
           perClick={currentPerClick}
-          isBoosted={isBoostActive}
+          isBoosted={earningsBoostActive}
         />
 
         <LevelSystem
@@ -56,18 +56,19 @@ function Earnings() {
 
         <ClickerZone
           onClick={handleTap}
-          isBoosted={isBoostActive}
+          isBoosted={earningsBoostActive}
           perClick={currentPerClick}
         />
 
-        <AdBooster
-          onBoostActivate={handleBoostChange}
-        />
+        <AdBooster />
+
       </div>
 
-      <AdBanner 
+      {/* 🔧 FIX Bug #9: Added rewardAmount prop */}
+      <AdBanner
         onAdComplete={() => addBonus(50)}
         adDuration={5}
+        rewardAmount={50}
       />
     </div>
   );

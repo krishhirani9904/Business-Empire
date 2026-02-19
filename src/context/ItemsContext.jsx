@@ -1,9 +1,14 @@
-// src/context/ItemsContext.jsx
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useGame } from './GameContext';
+// ============================================
+// 📄 FILE: src/context/ItemsContext.jsx
+// 🎯 PURPOSE: Items State Manager
+// 🔧 FIXES:
+//    Bug #12: Debounced save (2s delay)
+//    Bug #14: sellItem uses useRef to avoid recreating
+// ============================================
+
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 const ItemsContext = createContext();
-
 const ITEMS_STORAGE_KEY = 'business_samrajya_items';
 
 const getStoredItems = () => {
@@ -37,21 +42,52 @@ export function ItemsProvider({ children }) {
     return { ...defaultItems, ...stored };
   });
 
-  // FIXED: Actually use deductBalance to subtract money
-  const { deductBalance } = useGame();
+  const buyingRef = useRef(false);
+  // 🔧 FIX Bug #12: Save timer ref for debouncing
+  const saveTimerRef = useRef(null);
+  // 🔧 FIX Bug #14: State ref for sellItem
+  const itemsStateRef = useRef(itemsState);
 
+  // Keep ref in sync with state
   useEffect(() => {
-    try {
-      localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(itemsState));
-    } catch (e) {
-      console.error('Error saving items:', e);
-    }
+    itemsStateRef.current = itemsState;
   }, [itemsState]);
 
-  // FIXED: buyItem now deducts balance
+  // 🔧 FIX Bug #12: Debounced auto-save
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(itemsState));
+      } catch (e) {
+        console.error('Error saving items:', e);
+      }
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [itemsState]);
+
+  // Save on page close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(itemsStateRef.current));
+      } catch (e) {
+        console.error('Error saving items on unload:', e);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // Buy item
   const buyItem = useCallback((category, item, totalPrice, extraData = {}) => {
-    const success = deductBalance(totalPrice);
-    if (!success) return false;
+    if (buyingRef.current) return false;
+    buyingRef.current = true;
 
     setItemsState(prev => {
       const key = `owned${category}`;
@@ -60,20 +96,54 @@ export function ItemsProvider({ children }) {
         [key]: [...(prev[key] || []), {
           ...item,
           ...extraData,
-          ownId: Date.now(),
+          ownId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           purchasePrice: totalPrice,
           purchasedAt: new Date().toISOString()
         }]
       };
     });
-    return true;
-  }, [deductBalance]);
 
+    setTimeout(() => { buyingRef.current = false; }, 500);
+    return true;
+  }, []);
+
+  // 🔧 FIX Bug #14: sellItem uses ref, no itemsState dependency
+  const sellItem = useCallback((category, identifierId) => {
+    if (buyingRef.current) return 0;
+    buyingRef.current = true;
+
+    const key = `owned${category}`;
+    const currentItems = itemsStateRef.current[key] || [];
+
+    const item = currentItems.find(i => i.ownId === identifierId)
+              || currentItems.find(i => i.id === identifierId);
+
+    if (!item) {
+      buyingRef.current = false;
+      return 0;
+    }
+
+    const sellPrice = Math.floor((item.purchasePrice || item.price || 0) * 0.7);
+
+    setItemsState(prev => {
+      const items = prev[key] || [];
+      return {
+        ...prev,
+        [key]: items.filter(i => i.ownId !== item.ownId)
+      };
+    });
+
+    setTimeout(() => { buyingRef.current = false; }, 500);
+    return sellPrice;
+  }, []); // No dependencies — uses ref
+
+  // Check if owned by original id
   const isOwned = useCallback((category, itemId) => {
     const key = `owned${category}`;
-    return (itemsState[key] || []).some(item => item.id === itemId);
-  }, [itemsState]);
+    return (itemsStateRef.current[key] || []).some(item => item.id === itemId);
+  }, []);
 
+  // Earn insignia
   const earnInsignia = useCallback((insigniaId) => {
     setItemsState(prev => {
       if (prev.earnedInsignia.includes(insigniaId)) return prev;
@@ -84,31 +154,43 @@ export function ItemsProvider({ children }) {
     });
   }, []);
 
+  // Get total items value
   const getTotalItemsValue = useCallback(() => {
+    const state = itemsStateRef.current;
     let total = 0;
-    Object.keys(itemsState).forEach(key => {
-      if (Array.isArray(itemsState[key]) && key !== 'earnedInsignia') {
-        itemsState[key].forEach(item => {
+    Object.keys(state).forEach(key => {
+      if (Array.isArray(state[key]) && key !== 'earnedInsignia') {
+        state[key].forEach(item => {
           total += item.purchasePrice || item.price || 0;
         });
       }
     });
     return total;
-  }, [itemsState]);
+  }, []);
 
+  // Get count for any category
+  const getItemCount = useCallback((category) => {
+    const key = `owned${category}`;
+    return (itemsStateRef.current[key] || []).length;
+  }, []);
+
+  // Reset all items
   const resetItems = useCallback(() => {
-    setItemsState(defaultItems);
+    setItemsState({ ...defaultItems });
     localStorage.removeItem(ITEMS_STORAGE_KEY);
   }, []);
 
-  const value = {
+  // 🔧 FIX Bug #13 (partial): useMemo for value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     ...itemsState,
     buyItem,
+    sellItem,
     isOwned,
     earnInsignia,
     getTotalItemsValue,
+    getItemCount,
     resetItems
-  };
+  }), [itemsState, buyItem, sellItem, isOwned, earnInsignia, getTotalItemsValue, getItemCount, resetItems]);
 
   return (
     <ItemsContext.Provider value={value}>

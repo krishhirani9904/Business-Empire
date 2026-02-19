@@ -1,159 +1,66 @@
-// pages/Business.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useGame } from '../context/GameContext';
 
-// Import Components
 import IncomeBoostCard from '../components/business/IncomeBoostCard';
 import ActionButtons from '../components/business/ActionButtons';
 import BusinessList from '../components/business/BusinessList';
 import BusinessDetailModal from '../components/business/BusinessDetailModal';
 import MergerPanel from '../components/business/MergerPanel';
 import OwnedBusinessList from '../components/business/OwnedBusinessList';
-import OwnedBusinessDetailModal from '../components/business/OwnedBusinessDetailModal';
 import AdBanner from '../components/earnings/AdBanner';
-
-// Import Data
-import { BUSINESSES, MERGER_OPTIONS } from '../components/business/businessData';
 
 function Business() {
   const { isDarkTheme } = useTheme();
-  
-  // State
-  const [balance, setBalance] = useState(500000);
-  const [ownedBusinesses, setOwnedBusinesses] = useState([]);
+
+  const {
+    balance,
+    ownedBusinesses,
+    mergedBusinesses,
+    calculateTotalIncome,
+    getOwnedCount,
+    handleBuyBusiness,
+    handleMerge,
+    handleSellBusiness,
+    addBonus
+  } = useGame();
+
   const [activeTab, setActiveTab] = useState(null);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
-  const [selectedOwnedBusiness, setSelectedOwnedBusiness] = useState(null);
-  const [isBoostActive, setIsBoostActive] = useState(false);
-  const [mergedBusinesses, setMergedBusinesses] = useState([]);
 
-  // Theme Colors
+  const buyTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (buyTimeoutRef.current) clearTimeout(buyTimeoutRef.current);
+    };
+  }, []);
+
   const colors = {
-    dark: {
-      bg: 'bg-gray-950',
-      textPrimary: 'text-white',
-      textSecondary: 'text-gray-400'
-    },
-    light: {
-      bg: 'bg-gray-50',
-      textPrimary: 'text-gray-900',
-      textSecondary: 'text-gray-600'
-    }
+    dark: { bg: 'bg-gray-950', textPrimary: 'text-white', textSecondary: 'text-gray-400' },
+    light: { bg: 'bg-white', textPrimary: 'text-gray-900', textSecondary: 'text-gray-600' }
   };
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // Calculate total income per hour
-  const calculateTotalIncome = useCallback(() => {
-    let total = ownedBusinesses.reduce((sum, owned) => {
-      return sum + (owned.incomePerHour || 0);
-    }, 0);
+  const totalIncome = calculateTotalIncome();
 
-    mergedBusinesses.forEach(mergerId => {
-      const merger = MERGER_OPTIONS.find(m => m.id === mergerId);
-      if (merger) {
-        total = total * (1 + merger.bonus / 100);
-      }
-    });
+  const onBuyBusiness = (business, size, customName) => {
+    handleBuyBusiness(business, size, customName);
 
-    if (isBoostActive) {
-      total = total * 2;
-    }
+    if (buyTimeoutRef.current) clearTimeout(buyTimeoutRef.current);
 
-    return Math.floor(total);
-  }, [ownedBusinesses, mergedBusinesses, isBoostActive]);
-
-  // Get owned count by business type
-  const getOwnedCount = (businessId) => {
-    return ownedBusinesses.filter(o => o.businessId === businessId).length;
-  };
-
-  // Handle Boost Change
-  const handleBoostChange = useCallback((status) => {
-    setIsBoostActive(status);
-  }, []);
-
-  // Handle Tab Change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
-
-  // Handle Select Business (for buying)
-  const handleSelectBusiness = (business) => {
-    setSelectedBusiness(business);
-  };
-
-  // Handle Buy Business
-  const handleBuyBusiness = (business, size, customName) => {
-    const cost = size.cost;
-    if (balance >= cost) {
-      setBalance(prev => prev - cost);
-      setOwnedBusinesses(prev => [...prev, {
-        id: Date.now(),
-        businessId: business.id,
-        businessName: business.name,
-        sizeType: size.type,
-        customName: customName || `${size.type} ${business.name}`,
-        incomePerHour: size.incomePerHour,
-        cost: cost,
-        purchasedAt: new Date().toISOString()
-      }]);
+    buyTimeoutRef.current = setTimeout(() => {
       setSelectedBusiness(null);
-    }
-  };
-
-  // Handle Select Owned Business (for viewing details)
-  const handleSelectOwnedBusiness = (ownedBusiness) => {
-    setSelectedOwnedBusiness(ownedBusiness);
-  };
-
-  // Handle Update Business Name
-  const handleUpdateBusinessName = (businessId, newName) => {
-    setOwnedBusinesses(prev => 
-      prev.map(b => 
-        b.id === businessId 
-          ? { ...b, customName: newName } 
-          : b
-      )
-    );
-    // Update selected business reference too
-    setSelectedOwnedBusiness(prev => 
-      prev && prev.id === businessId 
-        ? { ...prev, customName: newName } 
-        : prev
-    );
-  };
-
-  // Handle Sell Business
-  const handleSellBusiness = (businessId, sellPrice) => {
-    setBalance(prev => prev + sellPrice);
-    setOwnedBusinesses(prev => prev.filter(b => b.id !== businessId));
-    setSelectedOwnedBusiness(null);
-  };
-
-  // Handle Merge
-  const handleMerge = (merger) => {
-    const canMerge = merger.requirements.every(req => {
-      const count = getOwnedCount(req.businessId);
-      return count >= req.minCount;
-    });
-
-    if (canMerge && !mergedBusinesses.includes(merger.id)) {
-      setMergedBusinesses(prev => [...prev, merger.id]);
-    }
-  };
-
-  // Handle Ad Complete
-  const handleAdComplete = () => {
-    setBalance(prev => prev + 50);
+      buyTimeoutRef.current = null;
+    }, 300);
   };
 
   return (
-    <div className={`min-h-screen ${c.bg} transition-colors duration-300 pb-4`}>
-      <div className="max-w-full mx-auto">
-        
-        {/* Page Title */}
+    <div className={`min-h-screen ${c.bg} transition-colors duration-300 pb-2`}>
+      <div className="max-w-full mx-auto pt-2">
+
         <div className="mb-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <Briefcase className="w-6 h-6 text-blue-500" />
@@ -166,69 +73,52 @@ function Business() {
           </p>
         </div>
 
-        {/* Income & Boost Section */}
-        <IncomeBoostCard 
-          totalIncome={calculateTotalIncome()}
-          onBoostChange={handleBoostChange}
-        />
+        <IncomeBoostCard totalIncome={totalIncome} />
 
-        {/* Action Buttons */}
-        <ActionButtons 
+        <ActionButtons
           activeTab={activeTab}
-          onTabChange={handleTabChange}
+          onTabChange={setActiveTab}
         />
 
-        {/* Start Business Panel */}
         {activeTab === 'start' && (
-          <BusinessList 
+          <BusinessList
             ownedBusinesses={ownedBusinesses}
-            onSelectBusiness={handleSelectBusiness}
+            onSelectBusiness={setSelectedBusiness}
+            getOwnedCount={getOwnedCount}
           />
         )}
 
-        {/* Business Detail Modal (Buy) */}
         {selectedBusiness && (
           <BusinessDetailModal
             business={selectedBusiness}
             balance={balance}
             ownedCount={getOwnedCount(selectedBusiness.id)}
-            onBuy={handleBuyBusiness}
+            onBuy={onBuyBusiness}
             onClose={() => setSelectedBusiness(null)}
           />
         )}
 
-        {/* Owned Business Detail Modal (View/Edit/Sell) */}
-        {selectedOwnedBusiness && (
-          <OwnedBusinessDetailModal
-            ownedBusiness={selectedOwnedBusiness}
-            onClose={() => setSelectedOwnedBusiness(null)}
-            onUpdateName={handleUpdateBusinessName}
-            onSell={handleSellBusiness}
-          />
-        )}
-
-        {/* Merge Business Panel */}
         {activeTab === 'merge' && (
-          <MergerPanel 
+          <MergerPanel
             ownedBusinesses={ownedBusinesses}
             mergedBusinesses={mergedBusinesses}
             onMerge={handleMerge}
+            getOwnedCount={getOwnedCount}
           />
         )}
 
-        {/* Owned Businesses List */}
-        <OwnedBusinessList 
+        <OwnedBusinessList
           ownedBusinesses={ownedBusinesses}
-          totalIncome={calculateTotalIncome()}
-          onSelectOwned={handleSelectOwnedBusiness}
+          totalIncome={totalIncome}
+          onSellBusiness={handleSellBusiness}
         />
-
       </div>
 
-      {/* Ad Banner */}
-      <AdBanner 
-        onAdComplete={handleAdComplete}
+      {/* 🔧 FIX Bug #9: Added rewardAmount prop */}
+      <AdBanner
+        onAdComplete={() => addBonus(50)}
         adDuration={5}
+        rewardAmount={50}
       />
     </div>
   );

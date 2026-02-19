@@ -1,10 +1,16 @@
 import { TrendingUp, Star } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { formatNumber } from '../../utils/formatCurrency';
 
+// CONCEPT: Props with Callback
+// onUpgrade = function che je Parent thi aave
 const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
   const { isDarkTheme } = useTheme();
-  
+
+  // CONCEPT: Computed Value from Props
   const progress = Math.min((balance / upgradeCost) * 100, 100);
+
+  // CONCEPT: Derived Boolean
   const canUpgrade = balance >= upgradeCost;
 
   const colors = {
@@ -30,7 +36,7 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // Level titles
+  // CONCEPT: Array for Titles — Level based title system
   const getLevelTitle = (lvl) => {
     const titles = [
       'Beginner', 'Hustler', 'Trader', 'Investor', 'Businessman',
@@ -39,16 +45,11 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
     return titles[Math.min(lvl - 1, titles.length - 1)];
   };
 
-  // Format cost
-  const formatCost = (num) => {
-    if (num >= 10000000) return `${(num / 10000000).toFixed(1)}Cr`;
-    if (num >= 100000) return `${(num / 100000).toFixed(1)}L`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toLocaleString();
-  };
-
   return (
-    <div className={`${c.cardBg} rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 border ${c.cardBorder} transition-colors duration-300`}>
+    <div className={`${c.cardBg} rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 
+      border ${c.cardBorder} transition-colors duration-300`}
+    >
+      {/* Level Info Row */}
       <div className="flex justify-between items-center mb-2 sm:mb-3">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 fill-current flex-shrink-0" />
@@ -60,30 +61,35 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
           </span>
         </div>
         <span className={`text-[10px] sm:text-xs ${c.textSecondary} flex-shrink-0 ml-2`}>
-          ₹{formatCost(upgradeCost)}
+          ₹{formatNumber(upgradeCost)}
         </span>
       </div>
 
-      {/* Progress Bar */}
-      <div className={`w-full ${c.progressBg} rounded-full h-2 sm:h-3 mb-3 overflow-hidden border ${c.progressBorder}`}>
+      {/* CONCEPT: Dynamic Width for Progress Bar */}
+      <div className={`w-full ${c.progressBg} rounded-full h-2 sm:h-3 mb-3 
+        overflow-hidden border ${c.progressBorder}`}
+      >
         <div
-          className="bg-gradient-to-r from-yellow-400 to-orange-500 h-full rounded-full transition-all duration-500 ease-out"
+          className="bg-gradient-to-r from-yellow-400 to-orange-500 h-full 
+            rounded-full transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Upgrade Button */}
+      {/* CONCEPT: Disabled Button with Conditional Styling */}
       <button
         onClick={onUpgrade}
         disabled={!canUpgrade}
-        className={`w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-300 ${
-          canUpgrade
-            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
-            : `${c.buttonDisabled} cursor-not-allowed`
-        }`}
+        className={`w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl 
+          font-bold text-sm sm:text-base flex items-center justify-center 
+          gap-1.5 sm:gap-2 transition-all duration-300 ${
+            canUpgrade
+              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98]'
+              : `${c.buttonDisabled} cursor-not-allowed`
+          }`}
       >
         <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-        <span>Upgrade ₹{formatCost(upgradeCost)}</span>
+        <span>Upgrade ₹{formatNumber(upgradeCost)}</span>
       </button>
     </div>
   );

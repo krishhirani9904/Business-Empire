@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Floating text animation for clicker  */
+/* Floating text animation for clicker */
 @keyframes float-up {
   0% {
     opacity: 1;
@@ -20,12 +20,54 @@
   animation: float-up 1s ease-out forwards;
 }
 
-/* ===== Hide Scrollbar Globally ===== */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+/* Safe area support for devices with notches/home indicators */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ============================================
+   CONCEPT: Hide Scrollbar Globally
+   Scroll kaam kare pan scrollbar dekhay nahi
+   -webkit = Chrome, Safari, Edge
+   -ms = Internet Explorer
+   scrollbar-width = Firefox
+   ============================================ */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none;
+}
+
+/* IE/Edge legacy */
+* {
+  -ms-overflow-style: none;
+}
+
+/* Body and HTML specific */
+html,
+body {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Custom height values if using Tailwind config */
+@layer utilities {
+  .h-18 {
+    height: 4.5rem; /* 72px */
+  }
 }
