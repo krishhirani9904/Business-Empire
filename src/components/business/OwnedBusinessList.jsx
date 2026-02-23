@@ -39,7 +39,7 @@ function OwnedBusinessList({ ownedBusinesses, totalIncome, onSellBusiness }) {
           <h3 className={`text-lg font-bold ${c.textPrimary}`}>
             Owned Businesses
           </h3>
-          {/* CONCEPT: Item count badge — total ketla che te dekhay */}
+          {/* Item count badge — total ketla che te dekhay */}
           {ownedBusinesses.length > 0 && (
             <span className={`text-xs px-2 py-1 rounded-full 
               ${isDarkTheme ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
@@ -103,7 +103,7 @@ function OwnedBusinessList({ ownedBusinesses, totalIncome, onSellBusiness }) {
               })}
             </div>
 
-            {/* CONCEPT: Scroll Hint — 5 thi vadhu items hoy to hint dekhay */}
+            {/* Scroll Hint — 5 thi vadhu items hoy to hint dekhay */}
             {ownedBusinesses.length > 4 && (
               <div className="flex items-center justify-center gap-1 mt-2">
                 <ChevronDown className={`w-3.5 h-3.5 ${c.textSecondary} animate-bounce`} />

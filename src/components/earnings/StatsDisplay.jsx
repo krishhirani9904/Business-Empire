@@ -2,7 +2,7 @@ import { IndianRupee, Zap, MousePointerClick } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { formatNumber } from '../../utils/formatCurrency';
 
-// CONCEPT: Presentational Component
+// Presentational Component
 // isBoosted = EARNINGS boost only (not business boost)
 const StatsDisplay = ({ balance, perClick, isBoosted }) => {
   const { isDarkTheme } = useTheme();

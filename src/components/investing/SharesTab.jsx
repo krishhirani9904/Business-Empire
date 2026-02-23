@@ -1,9 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/SharesTab.jsx
-// 🎯 PURPOSE: Shares portfolio and market
-// 🔧 FIX Bug #7: MiniChart uses currentPrice and refresh key
-// ============================================
-
 import React, { useState, useMemo } from 'react';
 import {
   Briefcase, BarChart3, TrendingUp, Sparkles,
@@ -26,7 +20,6 @@ function SharesTab() {
   const [stableSort, setStableSort] = useState('highDividend');
   const [growthSort, setGrowthSort] = useState('default');
 
-  // 🔧 FIX Bug #7: Refresh key for charts — updates every 30 seconds
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
   // Update charts every 30 seconds
@@ -183,7 +176,6 @@ function SharesTab() {
     return list;
   }, [growthSort, getStockPrice]);
 
-  // Theme colors
   const c = isDarkTheme
     ? {
         cardBg: 'bg-gray-800/50', border: 'border-gray-700',
@@ -224,7 +216,6 @@ function SharesTab() {
     );
   };
 
-  // 🔧 FIX Bug #7: Stock card with refreshing chart
   const renderStockCard = (stock) => {
     const currentPrice = getStockPrice(stock.id) || stock.price;
     const change = currentPrice - stock.price;
@@ -259,7 +250,6 @@ function SharesTab() {
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            {/* 🔧 FIX Bug #7: MiniChart with currentPrice and refresh key */}
             <MiniChart 
               basePrice={currentPrice} 
               volatility={stock.volatility} 

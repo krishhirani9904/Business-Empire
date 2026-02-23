@@ -1,7 +1,7 @@
 import { useTheme } from '../../context/ThemeContext';
 import { BUSINESSES, MERGER_OPTIONS } from './businessData';
 
-// CONCEPT: Validation-heavy Component
+// Validation-heavy Component
 // Merger requirements check kare — badhi conditions satisfy thay to j merge possible
 function MergerPanel({ ownedBusinesses, mergedBusinesses, onMerge, getOwnedCount }) {
   const { isDarkTheme } = useTheme();
@@ -21,7 +21,7 @@ function MergerPanel({ ownedBusinesses, mergedBusinesses, onMerge, getOwnedCount
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // Validation: Merger possible che ke nahi
+  // Merger possible che ke nahi
   const canMerge = (merger) => {
     if (mergedBusinesses.includes(merger.id)) return false;
     return merger.requirements.every(req => {

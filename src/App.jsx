@@ -11,7 +11,6 @@ import Earnings from './pages/Earnings';
 import Business from './pages/Business';
 import Investing from './pages/Investing';
 import Items from './pages/Items';
-// 📖 Profile page — no more ComingSoon
 import Profile from './pages/Profile';
 
 // CONCEPT: Separate Inner Component
@@ -34,17 +33,13 @@ function AppContent() {
       {/* pt-20 = Header ni niche, pb-24 = Navbar ni upar */}
       <main className="pt-20 pb-24 px-4">
         <Routes>
-          {/* path="/" = Home page → Earnings render karo */}
+          {/* path="/" = Home page → Earnings render kare */}
           <Route path="/" element={<Earnings />} />
           <Route path="/earnings" element={<Earnings />} />
-          {/* Business page route */}
           <Route path="/business" element={<Business />} />
           <Route path="/investing" element={<Investing />} />
           <Route path="/items" element={<Items />} />
-          {/* 📖 Profile page — fully built now */}
           <Route path="/profile" element={<Profile />} />
-          {/* 404 Catch-all route */}
-          <Route path="*" element={<Profile />} />
         </Routes>
       </main>
 
@@ -54,8 +49,8 @@ function AppContent() {
   );
 }
 
-// CONCEPT: Provider Wrapping Order
-// Bahar thi andar: Router → Theme → Game → AppContent
+// Provider Wrapping Order
+// Bahar thi andar: Router -> Theme -> Game -> AppContent
 const App = () => {
   return (
     <Router>

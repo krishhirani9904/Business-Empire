@@ -5,7 +5,7 @@ import ThemeToggle from './ThemeToggle';
 function Header() {
   const { isDarkTheme } = useTheme();
 
-  // CONCEPT: Style Object Organization
+  //  Style Object Organization
   const themeColors = {
     dark: {
       headerBg: 'bg-gray-900',

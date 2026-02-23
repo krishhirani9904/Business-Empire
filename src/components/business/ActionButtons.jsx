@@ -1,7 +1,7 @@
 import { Plus, GitMerge } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-// CONCEPT: Controlled Component Pattern
+// Controlled Component Pattern
 // activeTab = Current state (from parent)
 // onTabChange = Function to change state (in parent)
 function ActionButtons({ activeTab, onTabChange }) {
@@ -34,7 +34,7 @@ function ActionButtons({ activeTab, onTabChange }) {
     <div className="grid grid-cols-2 gap-3 mb-4">
       {/* Start Business Button */}
       <button
-        // CONCEPT: Toggle Pattern — same button fari click → null (close)
+        // Toggle Pattern — same button fari click -> null (close)
         onClick={() => onTabChange(activeTab === 'start' ? null : 'start')}
         className={`
           flex items-center justify-center gap-2 p-4 rounded-2xl font-medium

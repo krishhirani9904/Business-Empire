@@ -1,12 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/StockDetailModal.jsx
-// 🎯 PURPOSE: Stock details, chart, buy/sell buttons
-// 🔧 REACT CONCEPTS:
-//    1. Multiple local state (showBuy, showSell)
-//    2. Nested modals (detail → buy/sell)
-//    3. Portfolio info display
-// ============================================
-
 import React, { useState } from 'react';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,33 +11,32 @@ function StockDetailModal({ stock, onClose }) {
   const { isDarkTheme } = useTheme();
   const { balance, ownedStocks, getStockPrice, buyStock, sellStock } = useGame();
 
-  // 📖 Multiple Modal States — ek time par ek j open thay
+  // Multiple Modal States — ek time par ek j open thay
   const [showBuy, setShowBuy] = useState(false);
   const [showSell, setShowSell] = useState(false);
 
-  // 📖 Current price from context (simulated price)
+  // Current price from context (simulated price)
   const currentPrice = getStockPrice(stock.id) || stock.price;
 
-  // 📖 Change calculation
+  // Change calculation
   const priceChange = currentPrice - stock.price;
   const changePercent = ((priceChange / stock.price) * 100).toFixed(2);
   const isUp = priceChange >= 0;
 
-  // 📖 Check if user owns this stock
+  // Check if user owns this stock
   const owned = ownedStocks.find(s => s.stockId === stock.id);
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
 
   return (
     <>
-      {/* ===== MAIN DETAIL MODAL ===== */}
+      {/*  MAIN DETAIL MODAL  */}
       <div className="fixed inset-0 bg-black/60 z-[90] flex items-end sm:items-center justify-center">
         <div className={`${c.bg} w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[85vh] overflow-y-auto`}>
 
-          {/* 📖 Sticky Header — Scroll karo to pan top par rahe */}
+          {/* Sticky Header — Scroll karo to pan top par rahe */}
           <div
             className="sticky top-0 z-10 p-4 flex items-center justify-between border-b backdrop-blur-sm"
             style={{
@@ -70,7 +60,7 @@ function StockDetailModal({ stock, onClose }) {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* 📖 Price Display */}
+            {/* Price Display */}
             <div className="text-center">
               <p className={`text-3xl font-bold ${c.text}`}>{formatINR(currentPrice)}</p>
               <div className={`flex items-center justify-center gap-1 mt-1 ${isUp ? 'text-green-500' : 'text-red-500'}`}>
@@ -81,12 +71,12 @@ function StockDetailModal({ stock, onClose }) {
               </div>
             </div>
 
-            {/* 📖 Price Chart */}
+            {/* Price Chart */}
             <div className={`p-3 rounded-xl ${c.inner}`}>
               <PriceChart basePrice={stock.price} volatility={stock.volatility} />
             </div>
 
-            {/* 📖 Stock Details Grid */}
+            {/* Stock Details Grid */}
             <div className="grid grid-cols-2 gap-2">
               <div className={`p-3 rounded-xl ${c.inner}`}>
                 <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>Sector</p>
@@ -110,7 +100,7 @@ function StockDetailModal({ stock, onClose }) {
               </div>
             </div>
 
-            {/* 📖 Holdings Section — Only if user owns this stock */}
+            {/* Holdings Section — Only if user owns this stock */}
             {owned && (
               <div className={`p-3 rounded-xl border ${isDarkTheme ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'}`}>
                 <p className={`text-xs font-semibold mb-2 ${isDarkTheme ? 'text-green-400' : 'text-green-700'}`}>
@@ -137,7 +127,7 @@ function StockDetailModal({ stock, onClose }) {
               </div>
             )}
 
-            {/* 📖 Action Buttons */}
+            {/* Action Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBuy(true)}
@@ -158,7 +148,7 @@ function StockDetailModal({ stock, onClose }) {
         </div>
       </div>
 
-      {/* 📖 Nested Modals — Buy/Sell modals detail modal ni upar aave */}
+      {/* Nested Modals — Buy/Sell modals detail modal ni upar aave */}
       {showBuy && (
         <BuyModal
           item={stock}

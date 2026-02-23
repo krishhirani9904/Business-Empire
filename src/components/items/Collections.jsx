@@ -54,7 +54,6 @@ function Collections() {
   const { items, category } = getCollectionData();
   const ownedItems = items.filter(item => isOwned(category, item.id));
 
-  // 🔧 FIX: Atomic purchase — buyItem first, then deduct
   const handleBuy = (item) => {
     if (buyingRef.current || balance < item.price || isOwned(category, item.id)) return;
     buyingRef.current = true;

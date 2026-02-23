@@ -1,14 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/RealEstateTab.jsx
-// 🎯 PURPOSE: 2 Expandable Cards — Market + My Properties
-// 🔧 FIXES:
-//    1. Both sections are now expandable cards
-//    2. Buy button → opens PropertyBuyModal
-//    3. My Properties → has Sell option
-//    4. Owned list → scrollable with hidden scrollbar
-//    5. All sorting options preserved
-// ============================================
-
 import React, { useState, useMemo } from 'react';
 import { 
   Home, ShoppingBag, Wrench, Check, ChevronDown, ChevronUp,
@@ -24,26 +13,26 @@ function RealEstateTab() {
   const { isDarkTheme } = useTheme();
   const { balance, ownedProperties, buyProperty, improveProperty, sellProperty } = useGame();
 
-  // 📖 Expanded card state
+  // Expanded card state
   const [expandedCard, setExpandedCard] = useState(null);
   
-  // 📖 Expanded property for improvements
+  // Expanded property for improvements
   const [expandedProperty, setExpandedProperty] = useState(null);
 
-  // 📖 Sort states
+  // Sort states
   const [marketSort, setMarketSort] = useState('cheapFirst');
   const [ownedSort, setOwnedSort] = useState('expensiveFirst');
 
-  // 📖 Modal states
+  // Modal states
   const [buyModalProperty, setBuyModalProperty] = useState(null);
   const [sellModalProperty, setSellModalProperty] = useState(null);
 
-  // 📖 Card toggle function
+  // Card toggle function
   const toggleCard = (cardId) => {
     setExpandedCard(prev => prev === cardId ? null : cardId);
   };
 
-  // 📖 Total Rental Income calculate karo
+  // Total Rental Income calculate kare
   const totalRentalIncome = useMemo(() => {
     return ownedProperties.reduce((sum, prop) => {
       let rental = prop.rentalIncomePerHour || 0;
@@ -56,7 +45,7 @@ function RealEstateTab() {
     }, 0);
   }, [ownedProperties]);
 
-  // 📖 Sorted market properties
+  // Sorted market properties
   const sortedMarketProperties = useMemo(() => {
     let sorted = [...PROPERTIES];
     switch (marketSort) {
@@ -81,7 +70,7 @@ function RealEstateTab() {
     return sorted;
   }, [marketSort]);
 
-  // 📖 Sorted owned properties
+  // Sorted owned properties
   const sortedOwnedProperties = useMemo(() => {
     let sorted = [...ownedProperties];
     switch (ownedSort) {
@@ -122,7 +111,7 @@ function RealEstateTab() {
     return sorted;
   }, [ownedProperties, ownedSort]);
 
-  // 📖 Handlers
+  // Handlers
   const handleBuyProperty = (property) => {
     buyProperty(property);
   };
@@ -135,7 +124,6 @@ function RealEstateTab() {
     sellProperty(ownId);
   };
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? {
         cardBg: 'bg-gray-800/50', border: 'border-gray-700',
@@ -148,7 +136,7 @@ function RealEstateTab() {
         inner: 'bg-gray-50', hover: 'hover:bg-gray-100'
       };
 
-  // ========== SORT OPTIONS ==========
+  //  SORT OPTIONS 
   const marketSortOptions = [
     { value: 'cheapFirst', label: 'Cheap First' },
     { value: 'expensiveFirst', label: 'Expensive First' },
@@ -165,7 +153,7 @@ function RealEstateTab() {
     { value: 'fullyImproved', label: 'Fully Improved' }
   ];
 
-  // ========== REUSABLE SORT CHIPS ==========
+  //  REUSABLE SORT CHIPS 
   const renderSortChips = (options, currentSort, setSortFn) => {
     return (
       <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
@@ -186,7 +174,7 @@ function RealEstateTab() {
     );
   };
 
-  // ========== EXPANDABLE CARD COMPONENT ==========
+  //  EXPANDABLE CARD COMPONENT 
   const ExpandableCard = ({ id, icon: Icon, title, subtitle, color, badge, children }) => {
     const isExpanded = expandedCard === id;
 
@@ -268,7 +256,7 @@ function RealEstateTab() {
         {/* Sort Chips */}
         {renderSortChips(marketSortOptions, marketSort, setMarketSort)}
 
-        {/* 📖 Properties List — Scrollable, max height */}
+        {/* Properties List — Scrollable, max height */}
         <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
           {sortedMarketProperties.map(property => {
             const canAfford = balance >= property.price;
@@ -296,7 +284,7 @@ function RealEstateTab() {
                     </div>
                   </div>
 
-                  {/* 📖 Buy Button — Opens confirmation modal */}
+                  {/* Buy Button — Opens confirmation modal */}
                   <button
                     onClick={() => setBuyModalProperty(property)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -344,7 +332,7 @@ function RealEstateTab() {
         {/* Sort Chips — only show if 2+ properties owned */}
         {ownedProperties.length > 1 && renderSortChips(ownedSortOptions, ownedSort, setOwnedSort)}
 
-        {/* 📖 Owned Properties List — Scrollable with hidden scrollbar */}
+        {/* Owned Properties List — Scrollable with hidden scrollbar */}
         {sortedOwnedProperties.length > 0 ? (
           <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide pr-1">
             {sortedOwnedProperties.map(prop => {
@@ -457,7 +445,7 @@ function RealEstateTab() {
                         })}
                       </div>
 
-                      {/* 📖 SELL BUTTON */}
+                      {/* SELL BUTTON */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

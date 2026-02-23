@@ -42,7 +42,6 @@ function NFTSection() {
     Legendary: 'bg-yellow-500/20 text-yellow-400'
   };
 
-  // 🔧 FIX: Atomic purchase — buyItem first, then deduct
   const handleBuy = (nft) => {
     if (buyingRef.current || balance < nft.price || isOwned('NFTs', nft.id)) return;
     buyingRef.current = true;
@@ -102,7 +101,7 @@ function NFTSection() {
         </div>
       )}
 
-      {/* ===== MARKET VIEW ===== */}
+      {/* MARKET VIEW */}
       {viewMode === 'market' && (
         <div className="space-y-2">
           {NFTS.map(nft => {
@@ -150,7 +149,7 @@ function NFTSection() {
         </div>
       )}
 
-      {/* ===== OWNED VIEW ===== */}
+      {/* OWNED VIEW */}
       {viewMode === 'owned' && (
         <div>
           {ownedNFTs.length === 0 ? (
@@ -201,7 +200,7 @@ function NFTSection() {
         </div>
       )}
 
-      {/* ===== BUY POPUP ===== */}
+      {/* BUY POPUP */}
       {selectedNFT && (
         <div className={`fixed inset-0 ${c.overlay} z-[100] 
           flex items-center justify-center p-4`}>
@@ -256,7 +255,7 @@ function NFTSection() {
         </div>
       )}
 
-      {/* ===== SELL POPUP ===== */}
+      {/* SELL POPUP */}
       {sellConfirm && (
         <div className="fixed inset-0 bg-black/60 z-[100] 
           flex items-center justify-center p-4">

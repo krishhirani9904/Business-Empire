@@ -8,7 +8,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
   const [scale, setScale] = useState(1);
   const [floatingTexts, setFloatingTexts] = useState([]);
 
-  // CONCEPT: useRef for timeout tracking
+  // useRef for timeout tracking
   // "timeoutsRef" naam raakhyu — built-in setTimeout override na thay
   const timeoutsRef = useRef([]);
 
@@ -27,7 +27,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // CONCEPT: CSS keyframes inject — only once
+  // CSS keyframes inject — only once
   useEffect(() => {
     const styleId = 'clicker-zone-styles';
     if (!document.getElementById(styleId)) {
@@ -44,7 +44,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
     }
   }, []);
 
-  // CONCEPT: Cleanup all timeouts on unmount (memory leak prevention)
+  // Cleanup all timeouts on unmount
   useEffect(() => {
     return () => {
       timeoutsRef.current.forEach(id => clearTimeout(id));
@@ -82,7 +82,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
     };
   };
 
-  // CONCEPT: Event Handler with Event Object
+  // Event Handler with Event Object
   const handleClick = (e) => {
     // Button shrink animation
     setScale(0.92);
@@ -100,10 +100,10 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
       value: perClick
     };
 
-    // CONCEPT: Functional setState with Array spread
+    // Functional setState with Array spread
     setFloatingTexts(prev => [...prev, newFloatingText]);
 
-    // 1 second baad floating text remove karo
+    // 1 second baad floating text remove kare
     const floatTimerId = window.setTimeout(() => {
       setFloatingTexts(prev => prev.filter(ft => ft.id !== newFloatingText.id));
       timeoutsRef.current = timeoutsRef.current.filter(id => id !== floatTimerId);
@@ -111,7 +111,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
 
     timeoutsRef.current.push(floatTimerId);
 
-    // Parent nu onClick call karo (handleTap from GameContext)
+    // Parent nu onClick call kard
     onClick();
   };
 
@@ -122,7 +122,7 @@ const ClickerZone = ({ onClick, isBoosted, perClick }) => {
       <div className="flex flex-col items-center justify-center">
         <div className="relative">
 
-          {/* CONCEPT: Array.map() for Dynamic Floating Text Elements */}
+          {/* Array.map() for Dynamic Floating Text Elements */}
           {floatingTexts.map(ft => (
             <div
               key={ft.id}

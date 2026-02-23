@@ -1,11 +1,5 @@
-// ============================================
-// 📄 FILE: src/utils/formatCurrency.js
-// 🎯 PURPOSE: SINGLE source of truth for all currency formatting
-// 🔧 FIX: All other files will import from here
-// ============================================
-
 // Number ne Indian currency format ma convert kare
-// Example: 1500 → "₹1.5K", 250000 → "₹2.50L"
+// Example: 1500 -> "₹1.5K", 250000 -> "₹2.50L"
 export const formatCurrency = (amount) => {
   if (amount === null || amount === undefined || isNaN(amount)) {
     return '₹0';
@@ -31,8 +25,6 @@ export const formatCurrency = (amount) => {
   return `${prefix}₹${absAmount.toLocaleString('en-IN')}`;
 };
 
-// Full format version - no abbreviation
-// Example: 1500000 → "₹15,00,000"
 export const formatCurrencyFull = (amount) => {
   if (amount === null || amount === undefined || isNaN(amount)) {
     return '₹0';
@@ -40,9 +32,6 @@ export const formatCurrencyFull = (amount) => {
   return `₹${Math.floor(amount).toLocaleString('en-IN')}`;
 };
 
-// Number format WITHOUT ₹ symbol
-// Use in components where ₹ already JSX ma che
-// Example: 1500 → "1.5K", 250000 → "2.5L"
 export const formatNumber = (amount) => {
   if (amount === null || amount === undefined || isNaN(amount)) {
     return '0';
@@ -57,10 +46,8 @@ export const formatNumber = (amount) => {
   return amount.toLocaleString();
 };
 
-// 🔧 formatINR — alias for formatCurrency (investing pages use this name)
 export const formatINR = formatCurrency;
 
-// 🔧 formatMarketCap — for crypto market caps (trillions)
 export const formatMarketCap = (num) => {
   if (num === null || num === undefined) return '₹0';
   if (num >= 1000000000000) return `₹${(num / 1000000000000).toFixed(1)}T`;

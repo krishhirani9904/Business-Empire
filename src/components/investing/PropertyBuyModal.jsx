@@ -1,12 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/PropertyBuyModal.jsx
-// 🎯 PURPOSE: Property buy confirmation modal
-// 🔧 REACT CONCEPTS:
-//    1. Confirmation modal pattern
-//    2. Property details display
-//    3. Affordability check
-// ============================================
-
 import React from 'react';
 import { X, Home, MapPin, TrendingUp, Wrench } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,18 +6,18 @@ import { formatINR } from './investingData';
 function PropertyBuyModal({ property, balance, onBuy, onClose }) {
   const { isDarkTheme } = useTheme();
 
-  // 📖 Can user afford this property?
+  // Can user afford this property?
   const canAfford = balance >= property.price;
 
-  // 📖 Calculate potential max income (base + all improvements)
+  // Calculate potential max income (base + all improvements)
   const maxPotentialIncome = property.rentalIncomePerHour +
     property.improvements.reduce((sum, imp) => sum + imp.bonusIncome, 0);
 
-  // 📖 ROI calculation (yearly return percentage)
+  // ROI calculation (yearly return percentage)
   const yearlyIncome = property.rentalIncomePerHour * 24 * 365;
   const roiPercent = ((yearlyIncome / property.price) * 100).toFixed(2);
 
-  // 📖 Handle buy action
+  // Handle buy action
   const handleBuy = () => {
     if (canAfford) {
       onBuy(property);
@@ -34,17 +25,16 @@ function PropertyBuyModal({ property, balance, onBuy, onClose }) {
     }
   };
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
 
   return (
-    // 📖 Modal Overlay — z-[100] = Above other modals
+    // Modal Overlay — z-[100] = Above other modals
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className={`${c.bg} border ${c.border} rounded-2xl p-5 max-w-sm w-full max-h-[85vh] overflow-y-auto`}>
 
-        {/* ===== HEADER ===== */}
+        {/*  HEADER  */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span className="text-4xl">{property.image}</span>
@@ -64,7 +54,7 @@ function PropertyBuyModal({ property, balance, onBuy, onClose }) {
           </button>
         </div>
 
-        {/* ===== PROPERTY DETAILS ===== */}
+        {/*  PROPERTY DETAILS  */}
         <div className="space-y-3 mb-4">
           {/* Price */}
           <div className={`p-3 rounded-xl ${c.inner}`}>
@@ -117,7 +107,7 @@ function PropertyBuyModal({ property, balance, onBuy, onClose }) {
           </div>
         </div>
 
-        {/* ===== BALANCE INFO ===== */}
+        {/*  BALANCE INFO  */}
         <div className={`p-3 rounded-xl mb-4 border ${c.inner} ${c.border}`}>
           <div className="flex justify-between mb-1">
             <span className={`text-xs ${c.textSec}`}>Property Price</span>
@@ -138,7 +128,7 @@ function PropertyBuyModal({ property, balance, onBuy, onClose }) {
           </div>
         </div>
 
-        {/* ===== BUY BUTTON ===== */}
+        {/*  BUY BUTTON  */}
         <button
           onClick={handleBuy}
           disabled={!canAfford}

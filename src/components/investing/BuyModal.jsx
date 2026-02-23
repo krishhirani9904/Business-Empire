@@ -1,17 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/BuyModal.jsx
-// 🎯 PURPOSE: Generic buy modal for stocks & crypto
-// 🔧 FIXES:
-//    1. Quick-select buttons (1,5,10,50,MAX) — properly select thay
-//    2. Input field — custom quantity type kari sakay
-//    3. maxQty edge case — 0 and Infinity handle kare
-//    4. Quantity minimum 1 (0 na thai sake)
-// 🔧 REACT CONCEPTS:
-//    1. Controlled Input with validation
-//    2. Quantity selector pattern
-//    3. Computed total cost
-// ============================================
-
 import React, { useState } from 'react';
 import { X, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,17 +6,17 @@ import { formatINR } from './investingData';
 function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' }) {
   const { isDarkTheme } = useTheme();
 
-  // 📖 Local Form State — quantity track kare
+  // Local Form State — quantity track kare
   const [quantity, setQuantity] = useState(1);
 
-  // 📖 Computed Values
-  // 🔧 FIXED: currentPrice 0 hoy to maxQty Infinity na aave
+  // Computed Values
+  // currentPrice 0 hoy to maxQty Infinity na aave
   const safePricePerUnit = currentPrice > 0 ? currentPrice : 1;
   const maxQty = Math.max(0, Math.floor(balance / safePricePerUnit));
   const totalCost = quantity * currentPrice;
   const canAfford = balance >= totalCost && quantity > 0 && maxQty > 0;
 
-  // 📖 Handle buy action
+  // Handle buy action
   const handleBuy = () => {
     if (canAfford && quantity > 0) {
       onBuy(item.id, quantity, currentPrice);
@@ -38,28 +24,27 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
     }
   };
 
-  // 📖 Safe quantity setter — always within valid range
-  // 🔧 FIXED: Minimum 1, Maximum maxQty, edge cases handle
+  // Safe quantity setter — always within valid range
+  // Minimum 1, Maximum maxQty, edge cases handle
   const setValidQuantity = (val) => {
     if (maxQty <= 0) {
       setQuantity(0);
       return;
     }
-    // 📖 Clamp between 1 and maxQty
+    // Clamp between 1 and maxQty
     setQuantity(Math.min(Math.max(1, val), maxQty));
   };
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
 
   return (
-    // 📖 Modal Overlay — z-[100] = Above detail modals (z-[90])
+    // Modal Overlay — z-[100] = Above detail modals (z-[90])
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className={`${c.bg} border ${c.border} rounded-2xl p-5 max-w-sm w-full`}>
 
-        {/* ===== HEADER ===== */}
+        {/* HEADER*/}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{item.logo}</span>
@@ -80,13 +65,13 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
           </button>
         </div>
 
-        {/* ===== CURRENT PRICE ===== */}
+        {/* CURRENT PRICE */}
         <div className={`p-3 rounded-xl mb-4 ${c.inner}`}>
           <p className={`text-xs ${c.textSec}`}>Current Price</p>
           <p className={`text-xl font-bold ${c.text}`}>{formatINR(currentPrice)}</p>
         </div>
 
-        {/* ===== QUANTITY SELECTOR ===== */}
+        {/* QUANTITY SELECTOR */}
         <div className="mb-4">
           <p className={`text-sm mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
             Quantity
@@ -102,15 +87,15 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
               <Minus className="w-4 h-4" />
             </button>
 
-            {/* 📖 Controlled Input
-                🔧 FIXED: onChange ma direct value set karo
-                onBlur ma validation karo (min 1) — typing friendly */}
+            {/* Controlled Input
+                onChange ma direct value set kare
+                onBlur ma validation kare (min 1) — typing friendly */}
             <input
               type="number"
               value={quantity}
               onChange={(e) => {
-                // 📖 Typing kare tyaare raw value set karo
-                // Empty string hoy to 0 set karo (user backspace kare)
+                // Typing kare tyaare raw value set kare
+                // Empty string hoy to 0 set kare
                 const raw = e.target.value;
                 if (raw === '' || raw === '0') {
                   setQuantity(0);
@@ -118,13 +103,13 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
                 }
                 const val = parseInt(raw);
                 if (!isNaN(val)) {
-                  // 📖 Upper bound check karo but lower bound nahi (typing mate)
+                  // Upper bound check karo but lower bound nai
                   setQuantity(Math.min(val, maxQty));
                 }
               }}
               onBlur={() => {
-                // 📖 Focus chhode tyaare minimum 1 enforce karo
-                // 🔧 FIXED: Typing kare tyaare 0 allow, blur par 1 enforce
+                // Focus chhode tyaare minimum 1 enforce karo
+                // Typing kare tyaare 0 allow, blur par 1 enforce
                 if (quantity < 1) setQuantity(1);
               }}
               min={1}
@@ -145,15 +130,13 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
             </button>
           </div>
 
-          {/* 📖 Quick Select Buttons
-              🔧 FIXED: Button click par correct quantity set thay
-              Problem hatu: Math.min(q, maxQty) hamesha maxQty set karti hati jyaare maxQty < q
-              Fix: Agar maxQty < button value to disable karo, nahi to exact value set karo */}
+          {/* Quick Select Buttons
+              Button click par correct quantity set thay */}
           <div className="flex gap-2 mt-2">
             {[1, 5, 10, 50].map(q => {
-              // 📖 Button affordable che ke nahi check karo
+              // Button affordable che ke nahi check karo
               const isAffordable = q <= maxQty;
-              // 📖 Exact match check — highlight mate
+              // Exact match check — highlight mate
               const isSelected = quantity === q;
 
               return (
@@ -161,7 +144,7 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
                   key={q}
                   onClick={() => {
                     if (isAffordable) {
-                      // 📖 Exact value set karo — no clamping needed
+                      // Exact value set kare — no clamping needed
                       setQuantity(q);
                     }
                   }}
@@ -197,7 +180,7 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
           </div>
         </div>
 
-        {/* ===== SUMMARY ===== */}
+        {/* SUMMARY */}
         <div className={`p-3 rounded-xl mb-4 border ${c.inner} ${c.border}`}>
           <div className="flex justify-between mb-1">
             <span className={`text-xs ${c.textSec}`}>Price per unit</span>
@@ -228,7 +211,7 @@ function BuyModal({ item, currentPrice, balance, onBuy, onClose, type = 'stock' 
           </div>
         </div>
 
-        {/* ===== BUY BUTTON ===== */}
+        {/* BUY BUTTON */}
         <button
           onClick={handleBuy}
           disabled={!canAfford || quantity <= 0}

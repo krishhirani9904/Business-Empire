@@ -9,7 +9,7 @@ function Navbar() {
   const navigate = useNavigate();
   const { isDarkTheme } = useTheme();
 
-  // CONCEPT: Array of Objects for Menu Items
+  // Array of Objects for Menu Items
   const menuItems = [
     {
       name: 'Investing',
@@ -69,7 +69,7 @@ function Navbar() {
 
   const colors = isDarkTheme ? themeColors.dark : themeColors.light;
 
-  // CONCEPT: Active Route Detection
+  // Active Route Detection
   // "/" (home) ne "/earnings" same treat kare
   const isActive = (path) => {
     if (location.pathname === '/' && path === '/earnings') return true;
@@ -92,7 +92,7 @@ function Navbar() {
       `}
     >
       <nav className="max-w-full mx-auto px-2 sm:px-4">
-        {/* CONCEPT: Array.map() for List Rendering */}
+        {/* Array.map() for List Rendering */}
         <ul className="flex justify-around items-center h-16 sm:h-20">
           {menuItems.map((item) => {
             const Icon = item.icon;

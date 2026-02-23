@@ -1,7 +1,7 @@
 import { useTheme } from '../../context/ThemeContext';
 import { BUSINESSES, formatCurrency } from './businessData';
 
-// CONCEPT: List Component with Selection
+// List Component with Selection
 // Grid layout ma badha businesses dekhay
 // Click kare to parent ne khabar pade (onSelectBusiness)
 function BusinessList({ ownedBusinesses, onSelectBusiness, getOwnedCount }) {
@@ -28,7 +28,7 @@ function BusinessList({ ownedBusinesses, onSelectBusiness, getOwnedCount }) {
         Available Businesses
       </h3>
 
-      {/* CONCEPT: Responsive Grid — 2 columns mobile, 3 columns tablet+ */}
+      {/*  Responsive Grid — 2 columns mobile, 3 columns tablet+ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {BUSINESSES.map(business => {
           const Icon = business.icon;
@@ -45,7 +45,7 @@ function BusinessList({ ownedBusinesses, onSelectBusiness, getOwnedCount }) {
                 text-left relative overflow-hidden
               `}
             >
-              {/* CONCEPT: Conditional Badge — owned count > 0 hoy to j dekhay */}
+              {/*  Conditional Badge — owned count > 0 hoy to j dekhay */}
               {ownedCount > 0 && (
                 <div className="absolute top-2 right-2 bg-green-500 text-white 
                   text-[10px] w-5 h-5 rounded-full flex items-center 

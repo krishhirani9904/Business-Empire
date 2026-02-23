@@ -1,22 +1,15 @@
-// ============================================
-// 📄 FILE: src/components/business/businessData.js
-// 🎯 PURPOSE: Business types and merger options
-// 🔧 FIX Bug #5: formatCurrency imported from utils (no duplicate)
-// ============================================
-
 import {
   Store, Car, Building2, Cpu, Plane, Crown,
   Truck, Factory, Hammer, Landmark, Trophy, Fuel
 } from 'lucide-react';
 
-// 🔧 FIX: Import from single source instead of defining here
 export { formatCurrency } from '../../utils/formatCurrency';
 
-// CONCEPT: Sell Price Constant
+// Sell Price Constant
 // Business sell kare to original cost no 50% paacho male
 export const SELL_PERCENTAGE = 0.5;
 
-// CONCEPT: Sell Price Calculator Utility
+// Sell Price Calculator Utility
 export const getSellPrice = (owned) => {
   if (owned.purchaseCost) {
     return Math.floor(owned.purchaseCost * SELL_PERCENTAGE);

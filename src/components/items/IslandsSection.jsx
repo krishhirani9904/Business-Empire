@@ -22,7 +22,6 @@ function IslandsSection() {
     : { cardBg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900',
         textSec: 'text-gray-500', innerBg: 'bg-gray-100', overlay: 'bg-black/50' };
 
-  // 🔧 FIX: Atomic purchase — buyItem first, then deduct
   const handleBuy = (island) => {
     if (buyingRef.current || balance < island.price) return;
     buyingRef.current = true;

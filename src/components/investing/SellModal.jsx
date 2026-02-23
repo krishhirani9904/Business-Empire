@@ -1,46 +1,32 @@
-// ============================================
-// 📄 FILE: src/components/investing/SellModal.jsx
-// 🎯 PURPOSE: Generic sell modal for stocks & crypto
-// 🔧 FIXES:
-//    1. Quick-select buttons (1,5,10,ALL) — properly select thay
-//    2. Input field — custom quantity type kari sakay
-//    3. Profit/Loss calculation correct
-//    4. Quantity validation against owned amount
-// 🔧 REACT CONCEPTS:
-//    1. Profit/Loss calculation
-//    2. Quantity validation against owned
-//    3. Same pattern as BuyModal but for selling
-// ============================================
-
 import React, { useState } from 'react';
 import { X, Plus, Minus, DollarSign } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { formatINR } from './investingData';
 
 function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' }) {
-  // 📖 owned = { stockId/cryptoId, quantity, avgBuyPrice }
+  // owned = { stockId/cryptoId, quantity, avgBuyPrice }
   const { isDarkTheme } = useTheme();
   const [quantity, setQuantity] = useState(1);
 
-  // 📖 Maximum sellable = owned quantity
+  // Maximum sellable = owned quantity
   const maxSellQty = owned.quantity;
 
-  // 📖 Profit/Loss Calculation
+  // Profit/Loss Calculation
   const totalRevenue = quantity * currentPrice;
   const profitLoss = (currentPrice - owned.avgBuyPrice) * quantity;
   const isProfit = profitLoss >= 0;
 
-  // 📖 Sell handler
+  // Sell handler
   const handleSell = () => {
     if (quantity > 0 && quantity <= maxSellQty) {
-      // 📖 onSell expects: (stockId/cryptoId, quantity, pricePerUnit)
+      // onSell expects: (stockId/cryptoId, quantity, pricePerUnit)
       const itemId = type === 'crypto' ? owned.cryptoId : owned.stockId;
       onSell(itemId, quantity, currentPrice);
       onClose();
     }
   };
 
-  // 📖 Safe quantity setter — always within 1 to maxSellQty
+  // Safe quantity setter — always within 1 to maxSellQty
   const setValidQuantity = (val) => {
     if (maxSellQty <= 0) {
       setQuantity(0);
@@ -49,7 +35,6 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
     setQuantity(Math.min(Math.max(1, val), maxSellQty));
   };
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
@@ -58,7 +43,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className={`${c.bg} border ${c.border} rounded-2xl p-5 max-w-sm w-full`}>
 
-        {/* ===== HEADER ===== */}
+        {/*  HEADER  */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{item.logo}</span>
@@ -76,7 +61,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
           </button>
         </div>
 
-        {/* ===== PRICE COMPARISON ===== */}
+        {/*  PRICE COMPARISON  */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className={`p-3 rounded-xl ${c.inner}`}>
             <p className={`text-[10px] ${c.textSec}`}>Avg Buy Price</p>
@@ -90,7 +75,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
           </div>
         </div>
 
-        {/* ===== QUANTITY SELECTOR ===== */}
+        {/*  QUANTITY SELECTOR  */}
         <div className="mb-4">
           <p className={`text-sm mb-2 ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
             Sell Quantity
@@ -106,8 +91,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
               <Minus className="w-4 h-4" />
             </button>
 
-            {/* 📖 Controlled Input
-                🔧 FIXED: Same fix as BuyModal — typing friendly */}
+            {/* Controlled Input*/}
             <input
               type="number"
               value={quantity}
@@ -119,12 +103,12 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
                 }
                 const val = parseInt(raw);
                 if (!isNaN(val)) {
-                  // 📖 Upper bound = owned quantity
+                  // Upper bound = owned quantity
                   setQuantity(Math.min(val, maxSellQty));
                 }
               }}
               onBlur={() => {
-                // 📖 Focus chhode tyaare minimum 1 enforce karo
+                // Focus chhode tyaare minimum 1 enforce kare
                 if (quantity < 1) setQuantity(1);
               }}
               min={1}
@@ -144,8 +128,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
             </button>
           </div>
 
-          {/* 📖 Quick Select Buttons
-              🔧 FIXED: Each button sets EXACT value, disabled if > owned */}
+          {/* Quick Select Buttons*/}
           <div className="flex gap-2 mt-2">
             {[1, 5, 10].map(q => {
               const isAvailable = q <= maxSellQty;
@@ -187,7 +170,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
           </div>
         </div>
 
-        {/* ===== SUMMARY ===== */}
+        {/*  SUMMARY  */}
         <div className={`p-3 rounded-xl mb-4 border ${c.inner} ${c.border}`}>
           <div className="flex justify-between mb-1">
             <span className={`text-xs ${c.textSec}`}>Revenue</span>
@@ -203,7 +186,7 @@ function SellModal({ item, owned, currentPrice, onSell, onClose, type = 'stock' 
           </div>
         </div>
 
-        {/* ===== SELL BUTTON ===== */}
+        {/*  SELL BUTTON  */}
         <button
           onClick={handleSell}
           disabled={quantity <= 0}

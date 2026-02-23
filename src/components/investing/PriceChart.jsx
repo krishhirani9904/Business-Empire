@@ -1,12 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/PriceChart.jsx
-// 🎯 PURPOSE: Detailed price chart with area fill
-// 🔧 REACT CONCEPTS:
-//    1. useMemo for chart calculations
-//    2. Complex SVG with multiple elements (grid, area, line, dot)
-//    3. Conditional colors based on trend
-// ============================================
-
 import React, { useMemo } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { generateChartData, formatINR } from './investingData';
@@ -14,7 +5,7 @@ import { generateChartData, formatINR } from './investingData';
 function PriceChart({ basePrice, volatility, points = 30 }) {
   const { isDarkTheme } = useTheme();
 
-  // 📖 useMemo — Chart data cache karo
+  // useMemo — Chart data cache kare
   const data = useMemo(
     () => generateChartData(basePrice, volatility, points),
     [basePrice, volatility, points]
@@ -26,42 +17,41 @@ function PriceChart({ basePrice, volatility, points = 30 }) {
   const range = max - min || 1;
   const isUp = prices[prices.length - 1] >= prices[0];
 
-  // 📖 Chart dimensions
+  // Chart dimensions
   const width = 300;
   const height = 150;
   const padding = 10;
 
-  // 📖 Calculate SVG coordinate points
+  // Calculate SVG coordinate points
   const chartPoints = prices.map((p, i) => {
     const x = padding + (i / (prices.length - 1)) * (width - 2 * padding);
-    // 📖 (1 - normalized) = Y axis invert karo (upar = high value)
+    // (1 - normalized) = Y axis invert karo (upar = high value)
     const y = padding + (1 - (p - min) / range) * (height - 2 * padding);
     return { x, y };
   });
 
-  // 📖 Line points string for polyline
+  // Line points string for polyline
   const linePoints = chartPoints.map((p) => `${p.x},${p.y}`).join(' ');
 
-  // 📖 Area Fill Points — Line + bottom corners for closed polygon
+  // Area Fill Points — Line + bottom corners for closed polygon
   const areaPoints =
     `${chartPoints[0].x},${height - padding} ` +   // Bottom left corner
     linePoints +                                     // All line points
     ` ${chartPoints[chartPoints.length - 1].x},${height - padding}`; // Bottom right corner
 
-  // 📖 Colors based on up/down trend
+  // Colors based on up/down trend
   const color = isUp ? '#22c55e' : '#ef4444';
   const fillColor = isUp ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
 
   return (
     <div className="w-full">
-      {/* 📖 SVG viewBox = Responsive chart
-          viewBox defines coordinate system, width:100% scales it to container */}
+      {/* SVG viewBox = Responsive chart iewBox defines coordinate system, width:100% scales it to container */}
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="w-full"
         preserveAspectRatio="none"
       >
-        {/* 📖 Grid Lines — 5 horizontal lines for visual reference */}
+        {/* Grid Lines — 5 horizontal lines for visual reference */}
         {[0, 1, 2, 3, 4].map((i) => {
           const y = padding + (i / 4) * (height - 2 * padding);
           return (
@@ -77,10 +67,10 @@ function PriceChart({ basePrice, volatility, points = 30 }) {
           );
         })}
 
-        {/* 📖 Area Fill — Semi-transparent polygon below the line */}
+        {/* Area Fill — Semi-transparent polygon below the line */}
         <polygon points={areaPoints} fill={fillColor} />
 
-        {/* 📖 Price Line — Main chart line */}
+        {/* Price Line — Main chart line */}
         <polyline
           points={linePoints}
           fill="none"
@@ -90,7 +80,7 @@ function PriceChart({ basePrice, volatility, points = 30 }) {
           strokeLinejoin="round"
         />
 
-        {/* 📖 Current Price Dot — Last point par dot */}
+        {/* Current Price Dot — Last point par dot */}
         <circle
           cx={chartPoints[chartPoints.length - 1].x}
           cy={chartPoints[chartPoints.length - 1].y}
@@ -101,7 +91,7 @@ function PriceChart({ basePrice, volatility, points = 30 }) {
         />
       </svg>
 
-      {/* 📖 Price Labels — Min, Current, Max */}
+      {/* Price Labels — Min, Current, Max */}
       <div className="flex justify-between mt-1 px-1">
         <span className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>
           {formatINR(min)}

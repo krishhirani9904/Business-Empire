@@ -7,7 +7,6 @@ import { formatNumber } from '../../utils/formatCurrency';
 function IncomeBoostCard({ totalIncome }) {
   const { isDarkTheme } = useTheme();
 
-  // SEPARATE: Fakat business boost values
   const {
     businessBoostActive: isBoostActive,
     businessAdStatus: adStatus,

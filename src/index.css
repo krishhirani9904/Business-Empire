@@ -20,18 +20,10 @@
   animation: float-up 1s ease-out forwards;
 }
 
-/* Safe area support for devices with notches/home indicators */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ============================================
-   CONCEPT: Hide Scrollbar Globally
-   Scroll kaam kare pan scrollbar dekhay nahi
-   -webkit = Chrome, Safari, Edge
-   -ms = Internet Explorer
-   scrollbar-width = Firefox
-   ============================================ */
 
 /* Webkit browsers (Chrome, Safari, Edge) */
 *::-webkit-scrollbar {
@@ -50,7 +42,6 @@
   -ms-overflow-style: none;
 }
 
-/* Body and HTML specific */
 html,
 body {
   overflow-y: auto;
@@ -65,9 +56,8 @@ body::-webkit-scrollbar {
   height: 0;
 }
 
-/* Custom height values if using Tailwind config */
 @layer utilities {
   .h-18 {
-    height: 4.5rem; /* 72px */
+    height: 4.5rem; 
   }
 }

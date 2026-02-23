@@ -1,16 +1,4 @@
-// ============================================
-// 📄 FILE: src/components/investing/investingData.js
-// 🎯 PURPOSE: Stocks, Properties, Crypto nu static data
-// 🔧 FIX: formatINR, formatMarketCap imported from utils (no duplicate)
-// ============================================
-
-// 🔧 FIX Bug #5: Import from single source instead of defining here
 export { formatCurrency, formatINR, formatMarketCap } from '../../utils/formatCurrency';
-
-// =====================
-// 📈 STOCKS DATA
-// =====================
-
 export const STOCKS = [
   {
     id: 'teksft',
@@ -134,10 +122,7 @@ export const STOCKS = [
   }
 ];
 
-
-// =====================
-// 🏠 PROPERTIES DATA
-// =====================
+// PROPERTIES DATA
 
 export const PROPERTIES = [
   {
@@ -229,9 +214,7 @@ export const PROPERTIES = [
 ];
 
 
-// =====================
-// ₿ CRYPTOCURRENCY DATA
-// =====================
+// CRYPTOCURRENCY DATA
 
 export const CRYPTOCURRENCIES = [
   {
@@ -325,11 +308,9 @@ export const CRYPTOCURRENCIES = [
 ];
 
 
-// =====================
-// 📊 HELPER FUNCTIONS
-// =====================
+// HELPER FUNCTIONS
 
-// 📖 Random Chart Data Generator
+// Random Chart Data Generator
 export const generateChartData = (basePrice, volatility, points = 30) => {
   const data = [];
   let price = basePrice;

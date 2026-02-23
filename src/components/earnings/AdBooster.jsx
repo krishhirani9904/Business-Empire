@@ -3,13 +3,13 @@ import { Play, Loader2, Clock, Zap } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useGame } from '../../context/GameContext';
 
-// CONCEPT: Earnings-ONLY Booster
+// Earnings-ONLY Booster
 // Aa component FAKAT earnings page mate che
 // earningsAdStatus, earningsBoostTimer, startEarningsAd use kare
 const AdBooster = () => {
   const { isDarkTheme } = useTheme();
 
-  // SEPARATE: Fakat earnings boost values
+  // Fakat earnings boost values
   const {
     earningsAdStatus: adStatus,
     earningsBoostTimer: boostTimer,

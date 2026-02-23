@@ -1,14 +1,8 @@
-// ============================================
-// 📄 FILE: src/components/earnings/AdBanner.jsx
-// 🎯 PURPOSE: Ad banner with reward system
-// 🔧 FIX Bug #9: rewardAmount prop added (no more hardcoded ₹50)
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { X, Volume2, VolumeX } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-// CONCEPT: Static Data Outside Component
+// Static Data Outside Component
 const demoGames = [
   { id: 1, name: 'Candy Crush Saga', icon: '🍬', gradient: 'from-pink-500 to-purple-600', tagline: 'Match 3 Fun!', installs: '1B+' },
   { id: 2, name: 'Temple Run 2', icon: '🏃', gradient: 'from-green-500 to-teal-600', tagline: 'Run Forever!', installs: '500M+' },
@@ -17,7 +11,6 @@ const demoGames = [
   { id: 5, name: 'PUBG Mobile', icon: '🎯', gradient: 'from-amber-500 to-red-600', tagline: 'Battle Royale!', installs: '1B+' }
 ];
 
-// 🔧 FIX Bug #9: Added rewardAmount prop with default 50
 const AdBanner = ({ onAdComplete, adDuration = 5, rewardAmount = 50 }) => {
   const { isDarkTheme } = useTheme();
 
@@ -212,7 +205,6 @@ const AdBanner = ({ onAdComplete, adDuration = 5, rewardAmount = 50 }) => {
             </div>
           )}
 
-          {/* COMPLETED STATE — 🔧 FIX Bug #9: Dynamic rewardAmount */}
           {adState === 'completed' && (
             <div className="py-2 sm:py-3">
               <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -227,7 +219,6 @@ const AdBanner = ({ onAdComplete, adDuration = 5, rewardAmount = 50 }) => {
                     <h4 className={`${c.textPrimary} font-bold text-xs sm:text-sm`}>
                       Reward Earned!
                     </h4>
-                    {/* 🔧 FIX: Dynamic reward amount instead of hardcoded ₹50 */}
                     <p className="text-green-500 text-[10px] sm:text-xs font-medium">
                       +₹{rewardAmount} Bonus Added
                     </p>

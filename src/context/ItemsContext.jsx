@@ -1,11 +1,3 @@
-// ============================================
-// 📄 FILE: src/context/ItemsContext.jsx
-// 🎯 PURPOSE: Items State Manager
-// 🔧 FIXES:
-//    Bug #12: Debounced save (2s delay)
-//    Bug #14: sellItem uses useRef to avoid recreating
-// ============================================
-
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 const ItemsContext = createContext();
@@ -43,9 +35,7 @@ export function ItemsProvider({ children }) {
   });
 
   const buyingRef = useRef(false);
-  // 🔧 FIX Bug #12: Save timer ref for debouncing
   const saveTimerRef = useRef(null);
-  // 🔧 FIX Bug #14: State ref for sellItem
   const itemsStateRef = useRef(itemsState);
 
   // Keep ref in sync with state
@@ -53,7 +43,6 @@ export function ItemsProvider({ children }) {
     itemsStateRef.current = itemsState;
   }, [itemsState]);
 
-  // 🔧 FIX Bug #12: Debounced auto-save
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
@@ -107,7 +96,6 @@ export function ItemsProvider({ children }) {
     return true;
   }, []);
 
-  // 🔧 FIX Bug #14: sellItem uses ref, no itemsState dependency
   const sellItem = useCallback((category, identifierId) => {
     if (buyingRef.current) return 0;
     buyingRef.current = true;
@@ -180,7 +168,6 @@ export function ItemsProvider({ children }) {
     localStorage.removeItem(ITEMS_STORAGE_KEY);
   }, []);
 
-  // 🔧 FIX Bug #13 (partial): useMemo for value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     ...itemsState,
     buyItem,

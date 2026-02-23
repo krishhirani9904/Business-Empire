@@ -16,10 +16,8 @@ function YachtShop() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const buyingRef = useRef(false);
-  // 🔧 FIX: mountedRef added
   const mountedRef = useRef(true);
 
-  // 🔧 FIX: Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -48,7 +46,6 @@ function YachtShop() {
     setShowSuccess(false);
   };
 
-  // 🔧 FIX: Atomic purchase — check buyItem result
   const handleBuy = () => {
     if (!selected || buyingRef.current) return;
     const totalPrice = calculatePrice(selected);

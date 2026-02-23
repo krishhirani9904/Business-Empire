@@ -64,7 +64,6 @@ function Earnings() {
 
       </div>
 
-      {/* 🔧 FIX Bug #9: Added rewardAmount prop */}
       <AdBanner
         onAdComplete={() => addBonus(50)}
         adDuration={5}

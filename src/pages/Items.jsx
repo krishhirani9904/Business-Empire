@@ -202,7 +202,7 @@ function Items() {
           </div>
         )}
 
-        {/* ===== SECTION 2: Vehicle Shops ===== */}
+        {/* SECTION 2: Vehicle Shops */}
         <div className="mb-3">
           <p className={`text-xs font-bold ${c.textSecondary} uppercase tracking-wider mb-2 px-1`}>
             🏬 Vehicle Shops
@@ -250,7 +250,7 @@ function Items() {
           </div>
         )}
 
-        {/* ===== SECTION 3: More - Each card with content directly below it ===== */}
+        {/*SECTION 3: More - Each card  */}
         <div className="mb-3">
           <p className={`text-xs font-bold ${c.textSecondary} uppercase tracking-wider mb-2 px-1`}>
             ✨ More
@@ -292,7 +292,6 @@ function Items() {
                     </div>
                   </button>
 
-                  {/* Content - directly below its card */}
                   {isActive && (
                     <div className={`
                       rounded-2xl border overflow-hidden

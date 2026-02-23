@@ -10,7 +10,6 @@ function InsigniaSection() {
   const { isDarkTheme } = useTheme();
   const { balance, ownedBusinesses, mergedBusinesses, ownedStocks, stockPriceHistory, addBonus } = useGame();
   const { earnedInsignia, earnInsignia, getItemCount } = useItems();
-  // 🆕 Using getItemCount from context instead of local function
 
   const c = isDarkTheme
     ? { cardBg: 'bg-gray-900', border: 'border-gray-700/50', text: 'text-white',
@@ -53,7 +52,6 @@ function InsigniaSection() {
         return balance >= req.value;
         
       case 'item_count':
-        // 🆕 Uses context function — works for ALL categories
         return getItemCount(req.category) >= req.count;
         
       default:

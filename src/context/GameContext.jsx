@@ -1,14 +1,3 @@
-// ============================================
-// 📄 FILE: src/context/GameContext.jsx
-// 🎯 PURPOSE: Complete Game State Manager
-// 🔧 FIXES:
-//    Bug #4: Production default values (not debug)
-//    Bug #10: Offline earnings includes active boost
-//    Bug #13: Separate contexts pattern (optimized re-renders)
-//    Bug #15: Price updates only when needed
-//    Bug #16: Proper custom hook pattern
-// ============================================
-
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BUSINESSES, MERGER_OPTIONS, getSellPrice } from '../components/business/businessData';
 import { STOCKS, CRYPTOCURRENCIES } from '../components/investing/investingData';
@@ -16,10 +5,6 @@ import { STOCKS, CRYPTOCURRENCIES } from '../components/investing/investingData'
 const GameContext = createContext();
 const STORAGE_KEY = 'business_samrajya_save';
 
-// ============================================
-// 🔧 FIX Bug #16: Custom Hook — Defined OUTSIDE component
-// Proper hook pattern — reusable and testable
-// ============================================
 function useBoostTimerLogic(initialStatus, initialTimer, type, setGameState) {
   const [isActive, setIsActive] = useState(initialStatus === 'boosted');
   const [adStatus, setAdStatus] = useState(initialStatus);
@@ -105,9 +90,7 @@ function useBoostTimerLogic(initialStatus, initialTimer, type, setGameState) {
   };
 }
 
-// ============================================
-// 📖 localStorage thi data read kare
-// ============================================
+// localStorage thi data read kare
 const getStoredData = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -147,9 +130,6 @@ const getStoredData = () => {
   return null;
 };
 
-// ============================================
-// 🔧 FIX Bug #4: Production Default Values
-// ============================================
 const defaultState = {
   balance: 0,
   level: 1,
@@ -173,9 +153,6 @@ const defaultState = {
   cryptoPriceHistory: {},
 };
 
-// ============================================
-// 📖 Boost Status Calculator
-// ============================================
 const calculateBoostStatusForType = (stored, type) => {
   if (!stored) return { isActive: false, remaining: 0, status: 'idle' };
 
@@ -211,9 +188,6 @@ const calculateBoostStatusForType = (stored, type) => {
   return { isActive: false, remaining: 0, status: 'idle' };
 };
 
-// ============================================
-// 🔧 FIX Bug #10: Offline Earnings with Boost
-// ============================================
 const computeInitialState = () => {
   const stored = getStoredData();
 
@@ -247,7 +221,6 @@ const computeInitialState = () => {
         });
       }
 
-      // 🔧 FIX Bug #10: Account for active boost during offline time
       if (stored.businessBoostEndTime && stored.businessBoostEndTime > stored.lastSaved) {
         const boostSecondsRemaining = Math.max(0, (stored.businessBoostEndTime - stored.lastSaved) / 1000);
         const boostHours = Math.min(boostSecondsRemaining / 3600, hoursElapsed);
@@ -283,14 +256,10 @@ const computeInitialState = () => {
   return { initGameState, earningsBoost, businessBoost };
 };
 
-// ============================================
-// 🏗️ PROVIDER COMPONENT
-// ============================================
 export function GameProvider({ children }) {
   const [initialData] = useState(computeInitialState);
   const [gameState, setGameState] = useState(initialData.initGameState);
 
-  // 🔧 FIX Bug #16: Using proper custom hook
   const earningsBoostHook = useBoostTimerLogic(
     initialData.earningsBoost.status,
     initialData.earningsBoost.remaining,
@@ -310,11 +279,10 @@ export function GameProvider({ children }) {
   const saveTimerRef = useRef(null);
   const incomeAccumulatorRef = useRef(0);
 
-  // 🔧 FIX Bug #15: Track if investing page is active
   const [isInvestingActive, setIsInvestingActive] = useState(false);
   const priceUpdateRef = useRef(null);
 
-  // Destructure for convenience
+  // Destructure
   const {
     balance, level, baseClickRate, upgradeCost,
     totalClicks, offlineEarnings,
@@ -323,9 +291,6 @@ export function GameProvider({ children }) {
     stockPriceHistory, cryptoPriceHistory,
   } = gameState;
 
-  // ============================================
-  // 💾 AUTO SAVE — Debounced
-  // ============================================
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
@@ -376,9 +341,6 @@ export function GameProvider({ children }) {
     }
   }, []);
 
-  // ============================================
-  // 🔧 FIX Bug #15: Price Updates Only When Needed
-  // ============================================
   useEffect(() => {
     // Initialize prices first time
     const needsStockInit = Object.keys(stockPriceHistory).length === 0;
@@ -461,9 +423,6 @@ export function GameProvider({ children }) {
     };
   }, [isInvestingActive]);
 
-  // ============================================
-  // 💰 INCOME CALCULATION
-  // ============================================
   const calculateTotalIncome = useCallback(() => {
     let total = ownedBusinesses.reduce(
       (sum, owned) => sum + (owned.incomePerHour || 0), 0
@@ -493,9 +452,6 @@ export function GameProvider({ children }) {
     return Math.floor(total);
   }, [ownedBusinesses, mergedBusinesses, businessBoostHook.isActive, ownedProperties]);
 
-  // ============================================
-  // ⏱️ AUTO INCOME TIMER
-  // ============================================
   useEffect(() => {
     if (incomeTimerRef.current) clearInterval(incomeTimerRef.current);
 
@@ -524,9 +480,6 @@ export function GameProvider({ children }) {
     };
   }, [calculateTotalIncome]);
 
-  // ============================================
-  // 🖱️ EARNINGS ACTIONS
-  // ============================================
   const currentPerClick = useMemo(() => {
     return earningsBoostHook.isActive ? baseClickRate * 2 : baseClickRate;
   }, [earningsBoostHook.isActive, baseClickRate]);
@@ -560,9 +513,6 @@ export function GameProvider({ children }) {
     setGameState(prev => ({ ...prev, offlineEarnings: 0 }));
   }, []);
 
-  // ============================================
-  // 🏢 BUSINESS ACTIONS
-  // ============================================
   const handleBuyBusiness = useCallback((business, size, customName) => {
     setGameState(prev => {
       if (prev.balance < size.cost) return prev;
@@ -617,9 +567,6 @@ export function GameProvider({ children }) {
     return ownedBusinesses.filter(o => o.businessId === businessId).length;
   }, [ownedBusinesses]);
 
-  // ============================================
-  // 📈 INVESTING ACTIONS
-  // ============================================
   const buyStock = useCallback((stockId, quantity, pricePerUnit) => {
     const totalCost = quantity * pricePerUnit;
 
@@ -819,9 +766,6 @@ export function GameProvider({ children }) {
     return cryptoPriceHistory[cryptoId] || 0;
   }, [cryptoPriceHistory]);
 
-  // ============================================
-  // 🔄 RESET GAME
-  // ============================================
   const resetGame = useCallback(() => {
     setGameState({ ...defaultState });
     earningsBoostHook.restoreBoost('idle', 0);
@@ -830,9 +774,6 @@ export function GameProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
   }, [earningsBoostHook, businessBoostHook]);
 
-  // ============================================
-  // 📤 CONTEXT VALUE
-  // ============================================
   const value = useMemo(() => ({
     // Earnings
     balance, level, baseClickRate, upgradeCost,
@@ -867,7 +808,6 @@ export function GameProvider({ children }) {
     buyProperty, improveProperty, sellProperty,
     buyCrypto, sellCrypto,
 
-    // 🔧 FIX Bug #15: Page tracking
     setIsInvestingActive,
   }), [
     balance, level, baseClickRate, upgradeCost, totalClicks, currentPerClick, offlineEarnings,

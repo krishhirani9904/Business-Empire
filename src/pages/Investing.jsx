@@ -1,11 +1,3 @@
-// ============================================
-// 📄 FILE: src/pages/Investing.jsx
-// 🎯 PURPOSE: Main investing page with tabs
-// 🔧 FIXES:
-//    Bug #1: addBonus destructured from useGame
-//    Bug #15: setIsInvestingActive called on mount/unmount
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -19,13 +11,9 @@ import AdBanner from '../components/earnings/AdBanner';
 
 function Investing() {
   const { isDarkTheme } = useTheme();
-  // 🔧 FIX Bug #1: addBonus destructured
-  // 🔧 FIX Bug #15: setIsInvestingActive for price updates
   const { balance, addBonus, setIsInvestingActive } = useGame();
-
   const [activeTab, setActiveTab] = useState('shares');
 
-  // 🔧 FIX Bug #15: Tell GameContext that investing page is active
   useEffect(() => {
     setIsInvestingActive(true);
     return () => setIsInvestingActive(false);

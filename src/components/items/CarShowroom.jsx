@@ -44,7 +44,6 @@ function CarShowroom() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // 🔧 FIX: Atomic purchase — buyItem first, then deduct
   const handleBuy = () => {
     if (!selectedCar || buyingRef.current) return;
     const totalPrice = calculatePrice(selectedCar);

@@ -2,15 +2,15 @@ import { TrendingUp, Star } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { formatNumber } from '../../utils/formatCurrency';
 
-// CONCEPT: Props with Callback
+// Props with Callback
 // onUpgrade = function che je Parent thi aave
 const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
   const { isDarkTheme } = useTheme();
 
-  // CONCEPT: Computed Value from Props
+  // Computed Value from Props
   const progress = Math.min((balance / upgradeCost) * 100, 100);
 
-  // CONCEPT: Derived Boolean
+  // Derived Boolean
   const canUpgrade = balance >= upgradeCost;
 
   const colors = {
@@ -36,7 +36,7 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
 
   const c = isDarkTheme ? colors.dark : colors.light;
 
-  // CONCEPT: Array for Titles — Level based title system
+  // Array for Titles — Level based title system
   const getLevelTitle = (lvl) => {
     const titles = [
       'Beginner', 'Hustler', 'Trader', 'Investor', 'Businessman',
@@ -65,7 +65,7 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
         </span>
       </div>
 
-      {/* CONCEPT: Dynamic Width for Progress Bar */}
+      {/* Dynamic Width for Progress Bar */}
       <div className={`w-full ${c.progressBg} rounded-full h-2 sm:h-3 mb-3 
         overflow-hidden border ${c.progressBorder}`}
       >
@@ -76,7 +76,7 @@ const LevelSystem = ({ level, balance, upgradeCost, onUpgrade }) => {
         />
       </div>
 
-      {/* CONCEPT: Disabled Button with Conditional Styling */}
+      {/* Disabled Button with Conditional Styling */}
       <button
         onClick={onUpgrade}
         disabled={!canUpgrade}

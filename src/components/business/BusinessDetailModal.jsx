@@ -12,12 +12,12 @@ function BusinessDetailModal({
 }) {
   const { isDarkTheme } = useTheme();
 
-  // CONCEPT: Multi-step state
+  // Multi-step state
   // null = size selection screen
   // object = confirmation screen with selected size
   const [selectedSize, setSelectedSize] = useState(null);
 
-  // CONCEPT: Custom name input state
+  // Custom name input state
   const [customName, setCustomName] = useState('');
 
   const colors = {
@@ -43,7 +43,7 @@ function BusinessDetailModal({
 
   const Icon = business.icon;
 
-  // CONCEPT: Step handler — size select thay to confirmation step par jaay
+  // Step handler — size select thay to confirmation step par jaay
   const handleSizeSelect = (size) => {
     if (balance < size.cost) return;
     setSelectedSize(size);
@@ -51,7 +51,7 @@ function BusinessDetailModal({
     setCustomName(`${size.type} ${business.name}`);
   };
 
-  // CONCEPT: Final buy — name + size confirm thay to buy
+  // Final buy — name + size confirm thay to buy
   const handleConfirmBuy = () => {
     if (!selectedSize) return;
     const finalName = customName.trim() || `${selectedSize.type} ${business.name}`;
@@ -67,15 +67,13 @@ function BusinessDetailModal({
   };
 
   return (
-    // CONCEPT: Modal Overlay — navbar ni upar rahe (z-[60])
-    // pb-24 = navbar ni upar padding — modal niche na jaay
+    // Modal Overlay — navbar ni upar rahe (z-[60])
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className={`
         ${c.cardBg} rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md 
         max-h-[85vh] overflow-y-auto
         mb-0 sm:mb-0
       `}
-        // CONCEPT: overflow-y-auto with hidden scrollbar (CSS handles hiding)
       >
 
         {/* Sticky Header */}
@@ -110,8 +108,7 @@ function BusinessDetailModal({
           </div>
         )}
 
-        {/* STEP 1: Size Selection
-            selectedSize null hoy to size options dekhay*/}
+        {/* STEP 1: Size Selection selectedSize null hoy to size options dekhay*/}
         {!selectedSize && (
           <div className="p-4 space-y-3">
             <h4 className={`text-sm font-medium ${c.textSecondary} mb-2`}>
@@ -173,8 +170,7 @@ function BusinessDetailModal({
           </div>
         )}
 
-        {/* STEP 2: Confirmation + Name Input
-            selectedSize hoy to confirmation popup dekhay */}
+        {/* STEP 2: Confirmation + Name Input selectedSize hoy to confirmation popup dekhay */}
         {selectedSize && (
           <div className="p-4 space-y-4">
 
@@ -204,7 +200,7 @@ function BusinessDetailModal({
               </div>
             </div>
 
-            {/* CONCEPT: Custom Name Input */}
+            {/* Custom Name Input */}
             <div>
               <label className={`text-sm font-medium ${c.textPrimary} mb-2 flex items-center gap-2`}>
                 <Edit3 className="w-4 h-4" />

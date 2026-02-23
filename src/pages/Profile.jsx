@@ -1,8 +1,3 @@
-// ============================================
-// 📄 FILE: src/pages/Profile.jsx
-// 🎯 PURPOSE: Player profile with stats, Forbes list, reset
-// ============================================
-
 import React, { useState } from 'react';
 import {
   User, Crown, IndianRupee, Briefcase, TrendingUp, Home,
@@ -17,7 +12,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { BUSINESSES } from '../components/business/businessData';
 import { STOCKS, PROPERTIES, CRYPTOCURRENCIES } from '../components/investing/investingData';
 
-// 📖 Forbes Dummy Data — Top players list
+// Forbes Dummy Data — Top players list
 const FORBES_LIST = [
   { rank: 1, name: 'Mukesh Dhirubhai', netWorth: 9500000000, avatar: '👑', industry: 'Oil & Gas' },
   { rank: 2, name: 'Gautam Shantilal', netWorth: 8200000000, avatar: '⚡', industry: 'Infrastructure' },
@@ -50,40 +45,37 @@ function Profile() {
     getTotalItemsValue, resetItems
   } = useItems();
 
-  // 📖 Forbes list toggle
+  //  Forbes list toggle
   const [showForbes, setShowForbes] = useState(false);
-  // 📖 Reset confirmation
+  //  Reset confirmation
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
 
-  // ============================================
-  // 📖 CALCULATIONS
-  // ============================================
-
-  // 📖 Stock portfolio value
+  //CALCULATIONS
+  // Stock portfolio value
   const stockPortfolioValue = ownedStocks.reduce((sum, owned) => {
     const price = stockPriceHistory[owned.stockId] || 0;
     return sum + (price * owned.quantity);
   }, 0);
 
-  // 📖 Crypto portfolio value
+  // Crypto portfolio value
   const cryptoPortfolioValue = ownedCrypto.reduce((sum, owned) => {
     const price = cryptoPriceHistory[owned.cryptoId] || 0;
     return sum + (price * owned.quantity);
   }, 0);
 
-  // 📖 Property total value
+  // Property total value
   const propertyTotalValue = ownedProperties.reduce((sum, prop) => {
     return sum + (prop.price || 0);
   }, 0);
 
-  // 📖 Items total value
+  // Items total value
   const itemsTotalValue = getTotalItemsValue();
 
-  // 📖 Business income
+  // Business income
   const businessIncome = calculateTotalIncome();
 
-  // 📖 Property rental income
+  // Property rental income
   const rentalIncome = ownedProperties.reduce((sum, prop) => {
     let rental = prop.rentalIncomePerHour || 0;
     if (prop.improvements) {
@@ -94,11 +86,11 @@ function Profile() {
     return sum + rental;
   }, 0);
 
-  // 📖 Total Net Worth — everything combined
+  // Total Net Worth — everything combined
   const totalNetWorth = balance + stockPortfolioValue + cryptoPortfolioValue
     + propertyTotalValue + itemsTotalValue;
 
-  // 📖 Player's Forbes rank calculation
+  // Player's Forbes rank calculation
   const getPlayerForbesRank = () => {
     for (let i = 0; i < FORBES_LIST.length; i++) {
       if (totalNetWorth >= FORBES_LIST[i].netWorth) return i + 1;
@@ -107,7 +99,7 @@ function Profile() {
   };
   const playerRank = getPlayerForbesRank();
 
-  // 📖 Level titles
+  //  Level titles
   const getLevelTitle = (lvl) => {
     const titles = [
       'Beginner', 'Hustler', 'Trader', 'Investor', 'Businessman',
@@ -116,15 +108,15 @@ function Profile() {
     return titles[Math.min(lvl - 1, titles.length - 1)];
   };
 
-  // 📖 Unique business types count
+  //  Unique business types count
   const uniqueBusinessTypes = [...new Set(ownedBusinesses.map(b => b.businessId))].length;
 
-  // 📖 Total collections count
+  //  Total collections count
   const totalCollections = ownedCoins.length + ownedPaintings.length
     + ownedUniqueItems.length + ownedRetroCars.length
     + ownedJewels.length + ownedStamps.length;
 
-  // 📖 Full reset handler
+  // Full reset handler
   const handleFullReset = () => {
     if (resetConfirmText !== 'RESET') return;
     resetGame();
@@ -133,9 +125,6 @@ function Profile() {
     setResetConfirmText('');
   };
 
-  // ============================================
-  // 📖 THEME COLORS
-  // ============================================
   const c = isDarkTheme
     ? {
         bg: 'bg-gray-950', cardBg: 'bg-gray-900', border: 'border-gray-700/50',
@@ -150,9 +139,6 @@ function Profile() {
         dangerBg: 'bg-red-50', dangerBorder: 'border-red-200'
       };
 
-  // ============================================
-  // 📖 STAT CARD HELPER
-  // ============================================
   const StatCard = ({ icon: Icon, label, value, subValue, color, iconBg }) => (
     <div className={`${c.cardBg} border ${c.border} rounded-2xl p-3 transition-colors duration-300`}>
       <div className="flex items-center gap-2 mb-1.5">
@@ -168,7 +154,7 @@ function Profile() {
     </div>
   );
 
-  // 📖 Progress stat helper — "5 out of 10" style
+  // Progress stat helper — "5 out of 10" style
   const ProgressStat = ({ emoji, label, owned, total, color }) => (
     <div className={`flex items-center justify-between py-2.5 border-b ${c.innerBorder} last:border-b-0`}>
       <div className="flex items-center gap-2.5">
@@ -193,9 +179,6 @@ function Profile() {
     <div className={`min-h-screen ${c.bg} transition-colors duration-300 pb-2`}>
       <div className="max-w-full mx-auto pt-2">
 
-        {/* ============================================
-            📖 SECTION 1: PROFILE HEADER
-            ============================================ */}
         <div className={`mx-2 mb-4 p-5 rounded-2xl border bg-gradient-to-br ${c.gradient} ${c.border}`}>
           <div className="flex items-center gap-4">
             {/* Avatar */}
@@ -234,9 +217,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* ============================================
-            📖 SECTION 2: WEALTH BREAKDOWN CARDS
-            ============================================ */}
         <div className="mx-2 mb-4">
           <p className={`text-xs font-bold ${c.textSec} uppercase tracking-wider mb-2 px-1`}>
             💰 Wealth Breakdown
@@ -292,9 +272,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* ============================================
-            📖 SECTION 3: FORBES LIST
-            ============================================ */}
         <div className="mx-2 mb-4">
           <button
             onClick={() => setShowForbes(!showForbes)}
@@ -352,7 +329,7 @@ function Profile() {
               {/* Forbes entries */}
               <div className="max-h-[350px] overflow-y-auto">
                 {FORBES_LIST.map(person => {
-                  // 📖 Check if player should appear before/at this rank
+                  //  Check if player should appear before/at this rank
                   const isPlayerAbove = playerRank === person.rank;
 
                   return (
@@ -419,9 +396,6 @@ function Profile() {
           )}
         </div>
 
-        {/* ============================================
-            📖 SECTION 4: STATISTICS
-            ============================================ */}
         <div className="mx-2 mb-4">
           <p className={`text-xs font-bold ${c.textSec} uppercase tracking-wider mb-2 px-1`}>
             📊 Statistics
@@ -477,9 +451,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* ============================================
-            📖 SECTION 5: INCOME BREAKDOWN
-            ============================================ */}
         <div className="mx-2 mb-4">
           <p className={`text-xs font-bold ${c.textSec} uppercase tracking-wider mb-2 px-1`}>
             💵 Income Sources
@@ -515,9 +486,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* ============================================
-            📖 SECTION 6: DANGER ZONE — RESET
-            ============================================ */}
         <div className="mx-2 mb-4">
           <p className={`text-xs font-bold text-red-500 uppercase tracking-wider mb-2 px-1`}>
             ⚠️ Danger Zone

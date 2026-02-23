@@ -1,13 +1,6 @@
-// ============================================
-// 📄 FILE: src/components/items/itemsData.js
-// 🎯 PURPOSE: All Items Data - Cars, Aircraft, Yachts, Collections, NFTs, Islands, Insignia
-// 🔧 FIX Bug #5: formatCurrency imported from utils (no duplicate)
-// ============================================
-
-// 🔧 FIX: Import from single source instead of defining here
 export { formatCurrency } from '../../utils/formatCurrency';
 
-// ===== CARS =====
+// CARS
 export const CARS = [
   {
     id: 'car_1',
@@ -161,7 +154,7 @@ export const CARS = [
   }
 ];
 
-// ===== AIRCRAFT =====
+// AIRCRAFT
 export const AIRCRAFT = [
   {
     id: 'air_1',
@@ -249,7 +242,7 @@ export const AIRCRAFT = [
   }
 ];
 
-// ===== YACHTS =====
+// YACHTS
 export const YACHTS = [
   {
     id: 'yacht_1',
@@ -328,7 +321,7 @@ export const YACHTS = [
   }
 ];
 
-// ===== COLLECTIONS =====
+// COLLECTIONS
 export const COINS_COLLECTION = [
   { id: 'coin_1', name: 'Ancient Gold Mohur', image: '🪙', price: 50000, description: 'Mughal era gold coin from 1628 AD.' },
   { id: 'coin_2', name: 'Silver Dynasty Rupee', image: '🪙', price: 75000, description: 'Silver rupee from the Gupta dynasty.' },
@@ -389,7 +382,7 @@ export const STAMPS_COLLECTION = [
   { id: 'stamp_7', name: 'Swedish Treskilling Yellow', image: '📮', price: 600000, description: 'Misprinted Swedish stamp worth millions.' }
 ];
 
-// ===== INSIGNIA (Achievements) =====
+// INSIGNIA (Achievements)
 export const INSIGNIA = [
   {
     id: 'insignia_1',
@@ -457,7 +450,7 @@ export const INSIGNIA = [
   }
 ];
 
-// ===== NFTs =====
+// NFTs
 export const NFTS = [
   { id: 'nft_1', name: 'Pixel Warrior #001', image: '🤖', price: 500000, collection: 'Pixel Warriors', rarity: 'Common', description: 'A brave pixel warrior from the digital realm.' },
   { id: 'nft_2', name: 'Cyber Ape #042', image: '🦍', price: 1200000, collection: 'Cyber Apes', rarity: 'Rare', description: 'Futuristic ape with neon cybernetic implants.' },
@@ -469,7 +462,7 @@ export const NFTS = [
   { id: 'nft_8', name: 'Crystal Unicorn #010', image: '🦄', price: 5500000, collection: 'Mythical Beasts', rarity: 'Legendary', description: 'Unicorn made entirely of living crystal.' }
 ];
 
-// ===== ISLANDS =====
+// ISLANDS
 export const ISLANDS = [
   { id: 'island_1', name: 'Palm Cove Island', image: '🏝️', price: 50000000, size: '2.5 acres', location: 'Arabian Sea', description: 'Tropical island with white sandy beaches and palm trees.' },
   { id: 'island_2', name: 'Emerald Isle', image: '🏝️', price: 120000000, size: '8 acres', location: 'Indian Ocean', description: 'Lush green island with waterfall and natural lagoon.' },

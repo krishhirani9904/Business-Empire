@@ -8,13 +8,13 @@ function OfflineEarningsPopup() {
   const { offlineEarnings, clearOfflineEarnings } = useGame();
   const { isDarkTheme } = useTheme();
 
-  // CONCEPT: Early Return / Conditional Rendering
-  // Offline earnings nathi to kaij render na karo
+  // Early Return / Conditional Rendering
+  // Offline earnings nathi to kaij render na kare
   if (!offlineEarnings || offlineEarnings <= 0) return null;
 
   return (
-    // CONCEPT: Modal Overlay Pattern
-    // fixed inset-0 = Puru screen cover kare
+    // Modal Overlay Pattern
+    // fixed inset-0 = Puri screen cover kare
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className={`
         ${isDarkTheme ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}
@@ -40,7 +40,7 @@ function OfflineEarningsPopup() {
           +{formatCurrency(offlineEarnings)}
         </div>
 
-        {/* Click → offlineEarnings = 0 → popup hide (early return) */}
+        {/* Click -> offlineEarnings = 0 -> popup hide (early return) */}
         <button
           onClick={clearOfflineEarnings}
           className="w-full bg-gradient-to-r from-green-500 to-emerald-500 

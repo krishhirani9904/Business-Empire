@@ -1,9 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/CryptoTab.jsx
-// 🎯 PURPOSE: Portfolio + Buy list + Owned list with scroll
-// 🔧 FIX Bug #7: MiniChart uses currentPrice + refresh key
-// ============================================
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Wallet, ShoppingCart, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,8 +14,6 @@ function CryptoTab() {
   const [showBuyList, setShowBuyList] = useState(false);
   const [cryptoFilter, setCryptoFilter] = useState('all');
   const [ownedCryptoSort, setOwnedCryptoSort] = useState('value');
-
-  // 🔧 FIX Bug #7: Refresh key for charts (updates every 30s)
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -31,7 +23,7 @@ function CryptoTab() {
     return () => clearInterval(interval);
   }, []);
 
-  // ========== CALCULATIONS ==========
+  // CALCULATIONS
   const totalCryptoValue = useMemo(() => {
     return ownedCrypto.reduce((sum, owned) => {
       const currentPrice = getCryptoPrice(owned.cryptoId);
@@ -51,7 +43,7 @@ function CryptoTab() {
     ? ((cryptoPL / totalCryptoInvested) * 100).toFixed(2)
     : 0;
 
-  // ========== FILTERED CRYPTO ==========
+  // FILTERED CRYPTO
   const filteredCrypto = useMemo(() => {
     let list = [...CRYPTOCURRENCIES];
     switch (cryptoFilter) {
@@ -82,7 +74,7 @@ function CryptoTab() {
     return list;
   }, [cryptoFilter, getCryptoPrice]);
 
-  // ========== SORTED OWNED ==========
+  // SORTED OWNED
   const sortedOwnedCrypto = useMemo(() => {
     if (ownedCrypto.length === 0) return [];
 
@@ -119,7 +111,6 @@ function CryptoTab() {
     return sorted;
   }, [ownedCrypto, getCryptoPrice, ownedCryptoSort]);
 
-  // ========== THEME COLORS ==========
   const colors = isDarkTheme
     ? {
         cardBg: 'bg-gray-800/50', border: 'border-gray-700',
@@ -132,7 +123,7 @@ function CryptoTab() {
         inner: 'bg-gray-50'
       };
 
-  // ========== OPTIONS ==========
+  // OPTIONS
   const cryptoFilterOptions = [
     { id: 'all', label: 'All', icon: '📋' },
     { id: 'hot', label: 'Hot', icon: '🔥' },
@@ -269,7 +260,6 @@ function CryptoTab() {
                       </div>
 
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        {/* 🔧 FIX Bug #7: MiniChart with currentPrice + refresh key */}
                         <MiniChart
                           basePrice={currentPrice}
                           volatility={crypto.volatility}

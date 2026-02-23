@@ -1,9 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/CryptoDetailModal.jsx
-// 🎯 PURPOSE: Crypto details, chart, buy/sell
-// 🔧 REACT CONCEPTS: Same as StockDetailModal but for crypto
-// ============================================
-
 import React, { useState } from 'react';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,11 +18,8 @@ function CryptoDetailModal({ crypto, onClose }) {
   const priceChange = currentPrice - crypto.price;
   const changePercent = ((priceChange / crypto.price) * 100).toFixed(2);
   const isUp = priceChange >= 0;
-
-  // 📖 FIXED: 'oc' naam use karyu — 'c' (theme colors) sathe shadow avoid
   const owned = ownedCrypto.find(oc => oc.cryptoId === crypto.id);
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
@@ -38,7 +29,7 @@ function CryptoDetailModal({ crypto, onClose }) {
       <div className="fixed inset-0 bg-black/60 z-[90] flex items-end sm:items-center justify-center">
         <div className={`${c.bg} w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[85vh] overflow-y-auto`}>
 
-          {/* 📖 Header */}
+          {/* Header */}
           <div
             className="sticky top-0 z-10 p-4 flex items-center justify-between border-b backdrop-blur-sm"
             style={{
@@ -62,7 +53,7 @@ function CryptoDetailModal({ crypto, onClose }) {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* 📖 Price */}
+            {/* Price */}
             <div className="text-center">
               <p className={`text-3xl font-bold ${c.text}`}>{formatINR(currentPrice)}</p>
               <div className={`flex items-center justify-center gap-1 mt-1 ${isUp ? 'text-green-500' : 'text-red-500'}`}>
@@ -73,12 +64,12 @@ function CryptoDetailModal({ crypto, onClose }) {
               </div>
             </div>
 
-            {/* 📖 Chart */}
+            {/* Chart */}
             <div className={`p-3 rounded-xl ${c.inner}`}>
               <PriceChart basePrice={crypto.price} volatility={crypto.volatility} />
             </div>
 
-            {/* 📖 Details Grid */}
+            {/* Details Grid */}
             <div className="grid grid-cols-2 gap-2">
               <div className={`p-3 rounded-xl ${c.inner}`}>
                 <p className={`text-[10px] ${isDarkTheme ? 'text-gray-500' : 'text-gray-400'}`}>Market Cap</p>
@@ -104,7 +95,7 @@ function CryptoDetailModal({ crypto, onClose }) {
               </div>
             </div>
 
-            {/* 📖 Holdings */}
+            {/* Holdings */}
             {owned && (
               <div className={`p-3 rounded-xl border ${isDarkTheme ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                 <p className={`text-xs font-semibold mb-2 ${isDarkTheme ? 'text-blue-400' : 'text-blue-700'}`}>
@@ -131,7 +122,7 @@ function CryptoDetailModal({ crypto, onClose }) {
               </div>
             )}
 
-            {/* 📖 Actions */}
+            {/* Actions */}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBuy(true)}
@@ -152,7 +143,7 @@ function CryptoDetailModal({ crypto, onClose }) {
         </div>
       </div>
 
-      {/* 📖 Nested Modals */}
+      {/* Nested Modals */}
       {showBuy && (
         <BuyModal
           item={crypto}

@@ -1,9 +1,3 @@
-// ============================================
-// 📄 FILE: src/components/investing/PropertySellModal.jsx
-// 🎯 PURPOSE: Property sell confirmation modal
-// 🔧 FIX Bug #11: Added null safety to price calculations
-// ============================================
-
 import React from 'react';
 import { X, Home, MapPin, DollarSign, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,10 +6,8 @@ import { formatINR, PROPERTIES } from './investingData';
 function PropertySellModal({ property, onSell, onClose }) {
   const { isDarkTheme } = useTheme();
 
-  // 📖 Get original property data for full improvements list
+  // Get original property data for full improvements list
   const originalProp = PROPERTIES.find(p => p.id === property.id);
-
-  // 🔧 FIX Bug #11: Added null safety — (property.price || 0)
   const baseSellPrice = (property.price || 0) * 0.7;
   const improvementValue = (property.improvements || []).reduce(
     (sum, imp) => sum + ((imp.cost || 0) * 0.5),
@@ -23,17 +15,16 @@ function PropertySellModal({ property, onSell, onClose }) {
   );
   const totalSellPrice = Math.floor(baseSellPrice + improvementValue);
 
-  // 📖 Calculate income being lost
+  // Calculate income being lost
   const totalIncome = (property.rentalIncomePerHour || 0) +
     (property.improvements || []).reduce((sum, imp) => sum + (imp.bonusIncome || 0), 0);
 
-  // 📖 Handle sell action
+  // Handle sell action
   const handleSell = () => {
     onSell(property.ownId);
     onClose();
   };
 
-  // ========== THEME COLORS ==========
   const c = isDarkTheme
     ? { bg: 'bg-gray-900', border: 'border-gray-700', text: 'text-white', textSec: 'text-gray-400', inner: 'bg-gray-800' }
     : { bg: 'bg-white', border: 'border-gray-200', text: 'text-gray-900', textSec: 'text-gray-500', inner: 'bg-gray-50' };
@@ -42,7 +33,7 @@ function PropertySellModal({ property, onSell, onClose }) {
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div className={`${c.bg} border ${c.border} rounded-2xl p-5 max-w-sm w-full`}>
 
-        {/* ===== HEADER ===== */}
+        {/*  HEADER  */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl">{property.image}</span>
@@ -59,7 +50,7 @@ function PropertySellModal({ property, onSell, onClose }) {
           </button>
         </div>
 
-        {/* ===== WARNING ===== */}
+        {/*  WARNING  */}
         <div className={`p-3 rounded-xl mb-4 flex items-start gap-2 ${
           isDarkTheme ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'
         }`}>
@@ -74,7 +65,7 @@ function PropertySellModal({ property, onSell, onClose }) {
           </div>
         </div>
 
-        {/* ===== PRICE BREAKDOWN ===== */}
+        {/*  PRICE BREAKDOWN  */}
         <div className={`p-3 rounded-xl mb-4 border ${c.inner} ${c.border}`}>
           <p className={`text-xs font-semibold mb-2 ${c.textSec}`}>Sale Breakdown</p>
           
@@ -109,7 +100,7 @@ function PropertySellModal({ property, onSell, onClose }) {
           </div>
         </div>
 
-        {/* ===== CURRENT INCOME INFO ===== */}
+        {/*  CURRENT INCOME INFO  */}
         <div className={`p-3 rounded-xl mb-4 ${c.inner}`}>
           <div className="flex justify-between">
             <span className={`text-xs ${c.textSec}`}>Current Income</span>
@@ -123,7 +114,7 @@ function PropertySellModal({ property, onSell, onClose }) {
           </div>
         </div>
 
-        {/* ===== SELL BUTTON ===== */}
+        {/*  SELL BUTTON  */}
         <button
           onClick={handleSell}
           className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all
