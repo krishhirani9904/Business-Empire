@@ -1,28 +1,19 @@
 import { Sun, Moon } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 
 function ThemeToggle() {
-  //  Custom Hook Usage
-  // Destructuring: isDarkTheme = boolean, toggleTheme = function
-  const { isDarkTheme, toggleTheme } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <button
       onClick={toggleTheme}
-      //  Dynamic className with Ternary
-      className={`p-2 rounded-full transition-all duration-300 ${
-        isDarkTheme
-          ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600'
-          : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-      }`}
+      className={`p-2 rounded-xl transition-all duration-300
+        ${isDark
+          ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
       aria-label="Toggle theme"
     >
-      {/*  Conditional Rendering */}
-      {isDarkTheme ? (
-        <Sun className="w-5 h-5" />
-      ) : (
-        <Moon className="w-5 h-5" />
-      )}
+      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>
   );
 }

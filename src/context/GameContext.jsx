@@ -1,835 +1,1114 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { BUSINESSES, MERGER_OPTIONS, getSellPrice } from '../components/business/businessData';
-import { STOCKS, CRYPTOCURRENCIES } from '../components/investing/investingData';
+import { createContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { storage } from '../services/storage';
+import { CARD_TIERS, getCardTier, getCardBonus } from '../data/cardTiers';
+import { getCategoryById } from '../data/businessCategories';
+import {
+  VEHICLE_CATEGORIES, STAFF_TYPES, EQUIPMENT_TYPES,
+  LICENSE_TYPES, INVENTORY_TYPES, BANK_SETTINGS_DEFAULTS
+} from '../data/businessRequirements';
+import {
+  INITIAL_PER_CLICK, INITIAL_UPGRADE_COST, UPGRADE_MULTIPLIER,
+  PER_CLICK_INCREMENT, BUSINESS_INCOME_RATE, RENAME_COST,
+  CLOSE_REFUND_NORMAL, CLOSE_REFUND_AD, MAX_BUSINESS_LEVEL,
+  AD_WATCH_TIME, CLICK_BOOST_MULTIPLIER, CLICK_BOOST_DURATION,
+  BIZ_BOOST_PERCENT, BIZ_BOOST_DURATION, MAX_OFFLINE_HOURS,
+  PROPERTY_SELL_TAX, CAR_SELL_PERCENT, AIRCRAFT_SELL_PERCENT
+} from '../config/constants';
+import { generateId } from '../utils/helpers';
+import { STOCKS } from '../data/stockMarket';
+import { CRYPTOCURRENCIES } from '../data/cryptoData';
+import { PROPERTIES, getPropertyRentalIncome, getPropertyMarketValue } from '../data/realEstate';
+import { COLLECTIONS } from '../data/collectionsData';
+import { ISLAND_SELL_LOSS_PERCENT } from '../data/islandsData';
 
-const GameContext = createContext();
-const STORAGE_KEY = 'business_samrajya_save';
+export const GameContext = createContext();
 
-function useBoostTimerLogic(initialStatus, initialTimer, type, setGameState) {
-  const [isActive, setIsActive] = useState(initialStatus === 'boosted');
-  const [adStatus, setAdStatus] = useState(initialStatus);
-  const [timer, setTimer] = useState(initialTimer);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (timer > 0) {
-      timerRef.current = setInterval(() => {
-        setTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-
-            if (adStatus === 'watching') {
-              setAdStatus('boosted');
-              setIsActive(true);
-              const boostEnd = Date.now() + (60 * 1000);
-              setGameState(gs => ({
-                ...gs,
-                [`${type}BoostEndTime`]: boostEnd,
-                [`${type}AdWatchingEndTime`]: null,
-              }));
-              return 60;
-            } else if (adStatus === 'boosted') {
-              setAdStatus('idle');
-              setIsActive(false);
-              setGameState(gs => ({
-                ...gs,
-                [`${type}BoostEndTime`]: null,
-                [`${type}AdWatchingEndTime`]: null,
-              }));
-              return 0;
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [adStatus, timer > 0, type, setGameState]);
-
-  const startAd = useCallback(() => {
-    if (adStatus !== 'idle') return;
-    const watchEnd = Date.now() + (30 * 1000);
-    setAdStatus('watching');
-    setTimer(30);
-    setGameState(gs => ({
-      ...gs,
-      [`${type}AdWatchingEndTime`]: watchEnd,
-      [`${type}BoostEndTime`]: null,
-    }));
-  }, [adStatus, type, setGameState]);
-
-  // For restoring boost from offline
-  const restoreBoost = useCallback((status, remaining) => {
-    setAdStatus(status);
-    setIsActive(status === 'boosted');
-    setTimer(remaining);
-  }, []);
-
-  return {
-    isActive,
-    adStatus,
-    timer,
-    startAd,
-    restoreBoost,
-    setIsActive,
-    setAdStatus,
-    setTimer
-  };
-}
-
-// localStorage thi data read kare
-const getStoredData = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
-      if (typeof parsed === 'object' && parsed !== null) {
-        return {
-          balance: typeof parsed.balance === 'number' ? parsed.balance : 0,
-          level: typeof parsed.level === 'number' ? parsed.level : 1,
-          baseClickRate: typeof parsed.baseClickRate === 'number' ? parsed.baseClickRate : 1,
-          upgradeCost: typeof parsed.upgradeCost === 'number' ? parsed.upgradeCost : 100,
-          totalClicks: typeof parsed.totalClicks === 'number' ? parsed.totalClicks : 0,
-          lastSaved: parsed.lastSaved || null,
-
-          earningsBoostEndTime: typeof parsed.earningsBoostEndTime === 'number' ? parsed.earningsBoostEndTime : null,
-          earningsAdWatchingEndTime: typeof parsed.earningsAdWatchingEndTime === 'number' ? parsed.earningsAdWatchingEndTime : null,
-          businessBoostEndTime: typeof parsed.businessBoostEndTime === 'number' ? parsed.businessBoostEndTime : null,
-          businessAdWatchingEndTime: typeof parsed.businessAdWatchingEndTime === 'number' ? parsed.businessAdWatchingEndTime : null,
-
-          ownedBusinesses: Array.isArray(parsed.ownedBusinesses) ? parsed.ownedBusinesses : [],
-          mergedBusinesses: Array.isArray(parsed.mergedBusinesses) ? parsed.mergedBusinesses : [],
-
-          ownedStocks: Array.isArray(parsed.ownedStocks) ? parsed.ownedStocks : [],
-          ownedProperties: Array.isArray(parsed.ownedProperties) ? parsed.ownedProperties : [],
-          ownedCrypto: Array.isArray(parsed.ownedCrypto) ? parsed.ownedCrypto : [],
-          stockPriceHistory: typeof parsed.stockPriceHistory === 'object' && parsed.stockPriceHistory !== null
-            ? parsed.stockPriceHistory : {},
-          cryptoPriceHistory: typeof parsed.cryptoPriceHistory === 'object' && parsed.cryptoPriceHistory !== null
-            ? parsed.cryptoPriceHistory : {},
-        };
-      }
-    }
-  } catch (e) {
-    console.error('Corrupt save data, resetting:', e);
-    localStorage.removeItem(STORAGE_KEY);
-  }
-  return null;
-};
-
-const defaultState = {
-  balance: 0,
+const DEFAULTS = {
+  balance: 1000000000,
   level: 1,
-  baseClickRate: 1,
-  upgradeCost: 100,
+  perClick: INITIAL_PER_CLICK,
+  upgradeCost: INITIAL_UPGRADE_COST,
   totalClicks: 0,
-  offlineEarnings: 0,
-
-  earningsBoostEndTime: null,
-  earningsAdWatchingEndTime: null,
-  businessBoostEndTime: null,
-  businessAdWatchingEndTime: null,
-
+  activeCardId: 'base',
+  cardNumber: '1042',
   ownedBusinesses: [],
   mergedBusinesses: [],
-
+  incomePerHour: 0,
+  bizBoostActive: false,
+  bizBoostPercent: 0,
+  bizBoostEndTime: null,
   ownedStocks: [],
   ownedProperties: [],
   ownedCrypto: [],
-  stockPriceHistory: {},
-  cryptoPriceHistory: {},
+  priceSeed: Date.now(),
+  // Items
+  ownedCars: [],
+  ownedAircraft: [],
+  ownedYachts: [],
+  ownedCollections: {},
+  ownedNFTs: [],
+  ownedIslands: [],
+  earnedInsignias: [],
 };
 
-const calculateBoostStatusForType = (stored, type) => {
-  if (!stored) return { isActive: false, remaining: 0, status: 'idle' };
+const recalcIncome = (businesses) => {
+  return businesses.reduce((sum, b) => {
+    const cat = getCategoryById(b.categoryId);
+    const taxRate = cat?.taxRate || 0.03;
+    let baseIncome = b.incomePerHour || 0;
+    let totalBoostPercent = 0;
 
-  const now = Date.now();
-  const boostEnd = stored[`${type}BoostEndTime`];
-  const adEnd = stored[`${type}AdWatchingEndTime`];
+    if (b.vehicles && Array.isArray(b.vehicles)) {
+      b.vehicles.forEach(v => {
+        if (v.active) baseIncome += v.incomePerHour || 0;
+      });
+    }
 
-  if (boostEnd && boostEnd > now) {
-    return {
-      isActive: true,
-      remaining: Math.floor((boostEnd - now) / 1000),
-      status: 'boosted',
-    };
-  }
-
-  if (adEnd && adEnd > now) {
-    return {
-      isActive: false,
-      remaining: Math.floor((adEnd - now) / 1000),
-      status: 'watching',
-    };
-  }
-
-  if (adEnd && adEnd <= now && !boostEnd) {
-    return {
-      isActive: true,
-      remaining: 60,
-      status: 'boosted',
-      needsBoostStart: true,
-    };
-  }
-
-  return { isActive: false, remaining: 0, status: 'idle' };
-};
-
-const computeInitialState = () => {
-  const stored = getStoredData();
-
-  const earningsBoost = calculateBoostStatusForType(stored, 'earnings');
-  const businessBoost = calculateBoostStatusForType(stored, 'business');
-
-  let initGameState = { ...defaultState, ...stored };
-
-  if (stored?.lastSaved) {
-    const timeDiff = (Date.now() - stored.lastSaved) / 1000;
-    const MAX_OFFLINE_SECONDS = 24 * 60 * 60;
-    const cappedTimeDiff = Math.min(timeDiff, MAX_OFFLINE_SECONDS);
-
-    const offlineRate = (stored.baseClickRate || 1) * 0.1;
-    let earned = Math.floor(cappedTimeDiff * offlineRate);
-
-    const hoursElapsed = cappedTimeDiff / 3600;
-
-    // Business income with boost consideration
-    if (stored.ownedBusinesses && stored.ownedBusinesses.length > 0) {
-      let totalIncomePerHour = stored.ownedBusinesses.reduce(
-        (sum, owned) => sum + (owned.incomePerHour || 0), 0
-      );
-
-      if (stored.mergedBusinesses) {
-        stored.mergedBusinesses.forEach(mergerId => {
-          const merger = MERGER_OPTIONS.find(m => m.id === mergerId);
-          if (merger) {
-            totalIncomePerHour = totalIncomePerHour * (1 + merger.bonus / 100);
-          }
-        });
-      }
-
-      if (stored.businessBoostEndTime && stored.businessBoostEndTime > stored.lastSaved) {
-        const boostSecondsRemaining = Math.max(0, (stored.businessBoostEndTime - stored.lastSaved) / 1000);
-        const boostHours = Math.min(boostSecondsRemaining / 3600, hoursElapsed);
-        const normalHours = hoursElapsed - boostHours;
-        earned += Math.floor(totalIncomePerHour * boostHours * 2);
-        earned += Math.floor(totalIncomePerHour * normalHours);
-      } else {
-        earned += Math.floor(totalIncomePerHour * hoursElapsed);
+    if (b.staff && Object.keys(b.staff).length > 0) {
+      const staffDefs = STAFF_TYPES[b.categoryId] || [];
+      for (const [staffId, count] of Object.entries(b.staff)) {
+        const def = staffDefs.find(s => s.id === staffId);
+        if (def && count > 0) totalBoostPercent += def.incomeBoost * count;
       }
     }
 
-    // Property rental income
-    if (stored.ownedProperties && stored.ownedProperties.length > 0) {
-      let totalRentalPerHour = stored.ownedProperties.reduce((sum, prop) => {
-        let rental = prop.rentalIncomePerHour || 0;
-        if (prop.improvements && prop.improvements.length > 0) {
-          prop.improvements.forEach(imp => {
-            rental += imp.bonusIncome || 0;
-          });
-        }
-        return sum + rental;
-      }, 0);
-
-      earned += Math.floor(totalRentalPerHour * hoursElapsed);
+    if (b.equipment && Object.keys(b.equipment).length > 0) {
+      const equipDefs = EQUIPMENT_TYPES[b.categoryId] || [];
+      for (const [equipId, count] of Object.entries(b.equipment)) {
+        const def = equipDefs.find(e => e.id === equipId);
+        if (def && count > 0) totalBoostPercent += def.incomeBoost * count;
+      }
     }
 
-    if (earned > 0) {
-      initGameState.offlineEarnings = earned;
-      initGameState.balance = (initGameState.balance || 0) + earned;
+    const licenseDefs = LICENSE_TYPES[b.categoryId] || [];
+    const requiredLicenses = licenseDefs.filter(l => l.required);
+    if (requiredLicenses.length > 0) {
+      const missingReq = requiredLicenses.filter(l => !(b.licenses?.[l.id]));
+      if (missingReq.length > 0) totalBoostPercent -= 50;
     }
-  }
 
-  return { initGameState, earningsBoost, businessBoost };
+    const invDefs = INVENTORY_TYPES[b.categoryId] || [];
+    const requiredInv = invDefs.filter(i => i.required);
+    if (requiredInv.length > 0) {
+      const missingInv = requiredInv.filter(i => (b.inventory?.[i.id] || 0) <= 0);
+      if (missingInv.length > 0) totalBoostPercent -= 30;
+    }
+
+    if (b.categoryId === 'bank') {
+      const settings = b.bankSettings || {};
+      const loanRate = settings.loanRate ?? BANK_SETTINGS_DEFAULTS.loanRate;
+      const savingsRate = settings.savingsRate ?? BANK_SETTINGS_DEFAULTS.savingsRate;
+      totalBoostPercent += (loanRate - BANK_SETTINGS_DEFAULTS.loanRate) * 2;
+      totalBoostPercent -= (savingsRate - BANK_SETTINGS_DEFAULTS.savingsRate) * 3;
+      const facilities = settings.facilities || {};
+      totalBoostPercent += Object.values(facilities).filter(Boolean).length * 5;
+    }
+
+    const boostMultiplier = Math.max(0.1, 1 + totalBoostPercent / 100);
+    const grossIncome = Math.floor(baseIncome * boostMultiplier);
+    const netIncome = Math.floor(grossIncome * (1 - taxRate));
+    return sum + netIncome;
+  }, 0);
+};
+
+const recalcMergerIncome = (merged) =>
+  (merged || []).reduce((sum, m) => sum + (m.incomePerHour || 0), 0);
+
+const recalcPropertyIncome = (properties) =>
+  (properties || []).reduce((s, p) => s + getPropertyRentalIncome(p.propertyId, p.improvements || []), 0);
+
+const recalcStockDividendIncome = (stocks) =>
+  (stocks || []).reduce((s, st) => {
+    const def = STOCKS.find(d => d.id === st.stockId);
+    if (!def || !def.dividendPercent) return s;
+    const totalValue = st.quantity * st.avgBuyPrice;
+    const annualDividend = totalValue * (def.dividendPercent / 100);
+    return s + Math.floor(annualDividend / 8760);
+  }, 0);
+
+const calcTotalIncome = (businesses, merged, properties, stocks) => {
+  return recalcIncome(businesses || []) + recalcMergerIncome(merged) +
+    recalcPropertyIncome(properties) + recalcStockDividendIncome(stocks);
+};
+
+const processVehicleWear = (vehicles, kmPerHourConfig) => {
+  if (!vehicles || !Array.isArray(vehicles)) return vehicles;
+  return vehicles.map(v => {
+    if (!v.active) return v;
+    const minKm = kmPerHourConfig?.min || 20;
+    const maxKm = kmPerHourConfig?.max || 60;
+    const kmThisSecond = (minKm + Math.random() * (maxKm - minKm)) / 3600;
+    const newKmDriven = (v.kmDriven || 0) + kmThisSecond;
+    if (newKmDriven >= v.maxKm) {
+      return { ...v, active: false, kmDriven: v.maxKm, retiredAt: Date.now() };
+    }
+    return { ...v, kmDriven: newKmDriven };
+  });
 };
 
 export function GameProvider({ children }) {
-  const [initialData] = useState(computeInitialState);
-  const [gameState, setGameState] = useState(initialData.initGameState);
-
-  const earningsBoostHook = useBoostTimerLogic(
-    initialData.earningsBoost.status,
-    initialData.earningsBoost.remaining,
-    'earnings',
-    setGameState
-  );
-
-  const businessBoostHook = useBoostTimerLogic(
-    initialData.businessBoost.status,
-    initialData.businessBoost.remaining,
-    'business',
-    setGameState
-  );
-
-  // Timer refs for income
-  const incomeTimerRef = useRef(null);
-  const saveTimerRef = useRef(null);
-  const incomeAccumulatorRef = useRef(0);
-
-  const [isInvestingActive, setIsInvestingActive] = useState(false);
-  const priceUpdateRef = useRef(null);
-
-  // Destructure
-  const {
-    balance, level, baseClickRate, upgradeCost,
-    totalClicks, offlineEarnings,
-    ownedBusinesses, mergedBusinesses,
-    ownedStocks, ownedProperties, ownedCrypto,
-    stockPriceHistory, cryptoPriceHistory,
-  } = gameState;
-
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
-    saveTimerRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          ...gameState,
-          lastSaved: Date.now(),
-        }));
-      } catch (e) {
-        console.error('Error saving:', e);
-      }
-    }, 2000);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [gameState]);
-
-  // Save on page close
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          ...gameState,
-          lastSaved: Date.now(),
-        }));
-      } catch (e) {
-        console.error('Error saving on unload:', e);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [gameState]);
-
-  // Handle offline boost edge case
-  useEffect(() => {
-    if (initialData.earningsBoost.needsBoostStart) {
-      const boostEnd = Date.now() + (60 * 1000);
-      setGameState(gs => ({ ...gs, earningsBoostEndTime: boostEnd, earningsAdWatchingEndTime: null }));
-      earningsBoostHook.restoreBoost('boosted', 60);
+  const [state, setState] = useState(() => {
+    const saved = storage.loadGame();
+    if (saved) {
+      const businesses = (saved.ownedBusinesses || []).map(b => ({
+        ...b, level: b.level || 1, totalEarnings: b.totalEarnings || 0,
+        expansionEndTime: b.expansionEndTime || null,
+        bizAdBoostEndTime: b.bizAdBoostEndTime || null,
+        bizAdBoostPercent: b.bizAdBoostPercent || 0,
+        staff: b.staff || {}, vehicles: b.vehicles || [],
+        equipment: b.equipment || {}, inventory: b.inventory || {},
+        licenses: b.licenses || {}, locations: b.locations || 1,
+        branches: b.branches || 0, resources: b.resources || {},
+        projects: b.projects || [], bankSettings: b.bankSettings || null,
+        parkingExpansions: b.parkingExpansions || 0,
+      }));
+      const merged = saved.mergedBusinesses || [];
+      const properties = (saved.ownedProperties || []).map(p => ({
+        ...p, improvements: p.improvements || [],
+      }));
+      const stocks = saved.ownedStocks || [];
+      return {
+        ...DEFAULTS, ...saved,
+        ownedBusinesses: businesses,
+        mergedBusinesses: merged,
+        ownedProperties: properties,
+        ownedStocks: stocks,
+        ownedCrypto: saved.ownedCrypto || [],
+        ownedCars: saved.ownedCars || [],
+        ownedAircraft: saved.ownedAircraft || [],
+        ownedYachts: saved.ownedYachts || [],
+        ownedCollections: saved.ownedCollections || {},
+        ownedNFTs: saved.ownedNFTs || [],
+        ownedIslands: saved.ownedIslands || [],
+        earnedInsignias: saved.earnedInsignias || [],
+        incomePerHour: calcTotalIncome(businesses, merged, properties, stocks),
+        bizBoostActive: false,
+        bizBoostPercent: saved.bizBoostPercent || 0,
+        bizBoostEndTime: saved.bizBoostEndTime || null,
+        cardNumber: saved.cardNumber || '1042',
+        priceSeed: saved.priceSeed || Date.now(),
+      };
     }
-    if (initialData.businessBoost.needsBoostStart) {
-      const boostEnd = Date.now() + (60 * 1000);
-      setGameState(gs => ({ ...gs, businessBoostEndTime: boostEnd, businessAdWatchingEndTime: null }));
-      businessBoostHook.restoreBoost('boosted', 60);
+    return { ...DEFAULTS };
+  });
+
+  const [boostActive, setBoostActive] = useState(false);
+  const [boostTimer, setBoostTimer] = useState(0);
+  const [adStatus, setAdStatus] = useState('idle');
+  const [bizBoostRemaining, setBizBoostRemaining] = useState(0);
+  const timerRef = useRef(null);
+  const saveRef = useRef(null);
+  const bizTimerRef = useRef(null);
+  const incomeAccRef = useRef(0);
+  const mainIntervalRef = useRef(null);
+
+  useEffect(() => {
+    if (state.bizBoostEndTime) {
+      const rem = Math.floor((state.bizBoostEndTime - Date.now()) / 1000);
+      if (rem > 0) { setState(p => ({ ...p, bizBoostActive: true })); setBizBoostRemaining(rem); }
+      else setState(p => ({ ...p, bizBoostActive: false, bizBoostPercent: 0, bizBoostEndTime: null }));
     }
   }, []);
 
   useEffect(() => {
-    // Initialize prices first time
-    const needsStockInit = Object.keys(stockPriceHistory).length === 0;
-    const needsCryptoInit = Object.keys(cryptoPriceHistory).length === 0;
+    const saved = storage.loadGame();
+    if (saved?.lastSaved && saved.incomePerHour > 0) {
+      const elapsed = (Date.now() - saved.lastSaved) / 1000;
+      const effective = Math.min(elapsed, MAX_OFFLINE_HOURS * 3600);
+      const offline = Math.floor((saved.incomePerHour / 3600) * effective);
+      if (offline > 0) setState(p => ({ ...p, balance: p.balance + offline }));
+    }
+  }, []);
 
-    if (needsStockInit || needsCryptoInit) {
-      setGameState(prev => {
-        const newStockPrices = { ...prev.stockPriceHistory };
-        const newCryptoPrices = { ...prev.cryptoPriceHistory };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setState(p => ({ ...p, priceSeed: Date.now() }));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-        if (needsStockInit) {
-          STOCKS.forEach(stock => {
-            newStockPrices[stock.id] = stock.price;
-          });
+  // Main loop
+  useEffect(() => {
+    mainIntervalRef.current = setInterval(() => {
+      setState(prev => {
+        let updated = { ...prev };
+        let businessesChanged = false;
+
+        const updatedBusinesses = prev.ownedBusinesses.map(biz => {
+          let bu = { ...biz };
+          let changed = false;
+
+          if (biz.expansionEndTime && Date.now() >= biz.expansionEndTime) {
+            const cat = getCategoryById(biz.categoryId);
+            const growth = cat?.profitGrowthPercent || 15;
+            bu.level = Math.min((biz.level || 1) + 1, MAX_BUSINESS_LEVEL);
+            bu.incomePerHour = Math.floor(biz.incomePerHour * (1 + growth / 100));
+            bu.expansionEndTime = null;
+            changed = true;
+          }
+
+          if (biz.bizAdBoostEndTime && Date.now() >= biz.bizAdBoostEndTime) {
+            bu.bizAdBoostEndTime = null; bu.bizAdBoostPercent = 0; changed = true;
+          }
+
+          if (biz.vehicles?.length > 0) {
+            const vc = VEHICLE_CATEGORIES[biz.categoryId];
+            const processed = processVehicleWear(biz.vehicles, vc?.kmPerHour);
+            if (processed.some((v, i) => v.active !== biz.vehicles[i]?.active)) changed = true;
+            bu.vehicles = processed;
+          }
+
+          if (biz.projects?.length > 0) {
+            const updProjects = biz.projects.map(p =>
+              p.status === 'active' && p.endTime && Date.now() >= p.endTime
+                ? { ...p, status: 'completed' } : p
+            );
+            const justCompleted = updProjects.filter((p, i) =>
+              p.status === 'completed' && biz.projects[i].status === 'active'
+            );
+            if (justCompleted.length > 0) {
+              justCompleted.forEach(p => {
+                updated.balance = (updated.balance || prev.balance) + (p.reward || 0);
+              });
+              bu.projects = updProjects; changed = true;
+            } else bu.projects = updProjects;
+          }
+
+          bu.totalEarnings = (biz.totalEarnings || 0) + (biz.incomePerHour || 0) / 3600;
+          if (changed) businessesChanged = true;
+          return changed ? bu : { ...biz, totalEarnings: bu.totalEarnings, vehicles: bu.vehicles };
+        });
+
+        updated.ownedBusinesses = updatedBusinesses;
+        if (businessesChanged) {
+          updated.incomePerHour = calcTotalIncome(updatedBusinesses, prev.mergedBusinesses, prev.ownedProperties, prev.ownedStocks);
         }
 
-        if (needsCryptoInit) {
-          CRYPTOCURRENCIES.forEach(crypto => {
-            newCryptoPrices[crypto.id] = crypto.price;
-          });
+        const cardBonus = getCardBonus(prev.activeCardId);
+        const bizBoostMult = prev.bizBoostActive ? (1 + prev.bizBoostPercent / 100) : 1;
+        const effectiveIncome = (updated.incomePerHour || prev.incomePerHour) * bizBoostMult * (1 + cardBonus);
+
+        if (effectiveIncome > 0) {
+          incomeAccRef.current += effectiveIncome / 3600;
+          if (incomeAccRef.current >= 1) {
+            const toAdd = Math.floor(incomeAccRef.current);
+            incomeAccRef.current -= toAdd;
+            updated.balance = (updated.balance || prev.balance) + toAdd;
+          }
         }
 
-        return {
-          ...prev,
-          stockPriceHistory: newStockPrices,
-          cryptoPriceHistory: newCryptoPrices,
-        };
+        return updated;
       });
-    }
+    }, 1000);
+    return () => { if (mainIntervalRef.current) clearInterval(mainIntervalRef.current); };
   }, []);
 
-  // Price simulation — only runs when investing is active
   useEffect(() => {
-    if (priceUpdateRef.current) {
-      clearInterval(priceUpdateRef.current);
-      priceUpdateRef.current = null;
-    }
-
-    // Only update prices if investing page is being viewed
-    if (isInvestingActive) {
-      priceUpdateRef.current = setInterval(() => {
-        setGameState(prev => {
-          const newStockPrices = { ...prev.stockPriceHistory };
-          const newCryptoPrices = { ...prev.cryptoPriceHistory };
-
-          STOCKS.forEach(stock => {
-            const currentPrice = newStockPrices[stock.id] || stock.price;
-            const changePercent = (Math.random() - 0.48) * 2 * (stock.volatility / 100);
-            let newPrice = currentPrice * (1 + changePercent);
-            const minPrice = stock.price * 0.5;
-            const maxPrice = stock.price * 2.0;
-            newPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
-            newStockPrices[stock.id] = Math.round(newPrice * 100) / 100;
-          });
-
-          CRYPTOCURRENCIES.forEach(crypto => {
-            const currentPrice = newCryptoPrices[crypto.id] || crypto.price;
-            const changePercent = (Math.random() - 0.48) * 2 * (crypto.volatility / 100);
-            let newPrice = currentPrice * (1 + changePercent);
-            const minPrice = crypto.price * 0.3;
-            const maxPrice = crypto.price * 3.0;
-            newPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
-            newCryptoPrices[crypto.id] = Math.round(newPrice * 100) / 100;
-          });
-
-          return {
-            ...prev,
-            stockPriceHistory: newStockPrices,
-            cryptoPriceHistory: newCryptoPrices,
-          };
+    if (bizTimerRef.current) { clearInterval(bizTimerRef.current); bizTimerRef.current = null; }
+    if (bizBoostRemaining > 0) {
+      bizTimerRef.current = setInterval(() => {
+        setBizBoostRemaining(p => {
+          if (p <= 1) {
+            clearInterval(bizTimerRef.current); bizTimerRef.current = null;
+            setState(s => ({ ...s, bizBoostActive: false, bizBoostPercent: 0, bizBoostEndTime: null }));
+            return 0;
+          }
+          return p - 1;
         });
-      }, 30000);
+      }, 1000);
     }
-
-    return () => {
-      if (priceUpdateRef.current) {
-        clearInterval(priceUpdateRef.current);
-        priceUpdateRef.current = null;
-      }
-    };
-  }, [isInvestingActive]);
-
-  const calculateTotalIncome = useCallback(() => {
-    let total = ownedBusinesses.reduce(
-      (sum, owned) => sum + (owned.incomePerHour || 0), 0
-    );
-
-    mergedBusinesses.forEach(mergerId => {
-      const merger = MERGER_OPTIONS.find(m => m.id === mergerId);
-      if (merger) {
-        total = total * (1 + merger.bonus / 100);
-      }
-    });
-
-    if (businessBoostHook.isActive) {
-      total = total * 2;
-    }
-
-    ownedProperties.forEach(prop => {
-      let rental = prop.rentalIncomePerHour || 0;
-      if (prop.improvements) {
-        prop.improvements.forEach(imp => {
-          rental += imp.bonusIncome || 0;
-        });
-      }
-      total += rental;
-    });
-
-    return Math.floor(total);
-  }, [ownedBusinesses, mergedBusinesses, businessBoostHook.isActive, ownedProperties]);
+    return () => { if (bizTimerRef.current) { clearInterval(bizTimerRef.current); bizTimerRef.current = null; } };
+  }, [bizBoostRemaining > 0]);
 
   useEffect(() => {
-    if (incomeTimerRef.current) clearInterval(incomeTimerRef.current);
-
-    const totalIncome = calculateTotalIncome();
-
-    if (totalIncome > 0) {
-      const incomePerTick = totalIncome / 360;
-
-      incomeTimerRef.current = setInterval(() => {
-        incomeAccumulatorRef.current += incomePerTick;
-
-        if (incomeAccumulatorRef.current >= 1) {
-          const toAdd = Math.floor(incomeAccumulatorRef.current);
-          incomeAccumulatorRef.current -= toAdd;
-
-          setGameState(prev => ({
-            ...prev,
-            balance: prev.balance + toAdd
-          }));
-        }
-      }, 10000);
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (boostTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setBoostTimer(p => {
+          if (p <= 1) {
+            clearInterval(timerRef.current); timerRef.current = null;
+            if (adStatus === 'watching') { setAdStatus('boosted'); setBoostActive(true); return CLICK_BOOST_DURATION; }
+            if (adStatus === 'boosted') { setAdStatus('idle'); setBoostActive(false); return 0; }
+            return 0;
+          }
+          return p - 1;
+        });
+      }, 1000);
     }
+    return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+  }, [adStatus, boostTimer > 0]);
 
-    return () => {
-      if (incomeTimerRef.current) clearInterval(incomeTimerRef.current);
-    };
-  }, [calculateTotalIncome]);
+  useEffect(() => {
+    if (saveRef.current) clearTimeout(saveRef.current);
+    saveRef.current = setTimeout(() => storage.saveGame(state), 1000);
+    return () => { if (saveRef.current) clearTimeout(saveRef.current); };
+  }, [state]);
 
-  const currentPerClick = useMemo(() => {
-    return earningsBoostHook.isActive ? baseClickRate * 2 : baseClickRate;
-  }, [earningsBoostHook.isActive, baseClickRate]);
+  useEffect(() => {
+    const h = () => storage.saveGame(state);
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [state]);
 
+  const currentPerClick = useMemo(() =>
+    boostActive ? state.perClick * CLICK_BOOST_MULTIPLIER : state.perClick
+  , [state.perClick, boostActive]);
+
+  const currentTier = useMemo(() => getCardTier(state.balance), [state.balance]);
+
+  const boostedIncomePerHour = useMemo(() => {
+    const cardBonus = getCardBonus(state.activeCardId);
+    let income = state.incomePerHour;
+    if (state.bizBoostActive && state.bizBoostPercent > 0)
+      income = Math.floor(income * (1 + state.bizBoostPercent / 100));
+    return Math.floor(income * (1 + cardBonus));
+  }, [state.incomePerHour, state.bizBoostActive, state.bizBoostPercent, state.activeCardId]);
+
+  const availableUpgrades = useMemo(() => {
+    let c = 0, tb = state.balance, tc = state.upgradeCost;
+    while (tb >= tc && c < 99) { c++; tb -= tc; tc = Math.floor(tc * UPGRADE_MULTIPLIER); }
+    return c;
+  }, [state.balance, state.upgradeCost]);
+
+  // ═══ CORE ACTIONS ═══
   const handleTap = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      balance: prev.balance + (earningsBoostHook.isActive ? prev.baseClickRate * 2 : prev.baseClickRate),
-      totalClicks: prev.totalClicks + 1
+    setState(p => ({
+      ...p,
+      balance: p.balance + (boostActive ? p.perClick * CLICK_BOOST_MULTIPLIER : p.perClick),
+      totalClicks: p.totalClicks + 1,
     }));
-  }, [earningsBoostHook.isActive]);
+  }, [boostActive]);
 
   const handleUpgrade = useCallback(() => {
-    setGameState(prev => {
-      if (prev.balance < prev.upgradeCost) return prev;
-      return {
-        ...prev,
-        balance: prev.balance - prev.upgradeCost,
-        level: prev.level + 1,
-        baseClickRate: prev.baseClickRate + 2,
-        upgradeCost: Math.floor(prev.upgradeCost * 2.5)
-      };
+    setState(p => {
+      if (p.balance < p.upgradeCost) return p;
+      return { ...p, balance: p.balance - p.upgradeCost, level: p.level + 1,
+        perClick: p.perClick + PER_CLICK_INCREMENT,
+        upgradeCost: Math.floor(p.upgradeCost * UPGRADE_MULTIPLIER) };
     });
   }, []);
 
-  const addBonus = useCallback((amount) => {
-    setGameState(prev => ({ ...prev, balance: prev.balance + amount }));
-  }, []);
+  const startAd = useCallback(() => {
+    if (adStatus !== 'idle') return;
+    setAdStatus('watching'); setBoostTimer(AD_WATCH_TIME);
+  }, [adStatus]);
 
-  const clearOfflineEarnings = useCallback(() => {
-    setGameState(prev => ({ ...prev, offlineEarnings: 0 }));
-  }, []);
-
-  const handleBuyBusiness = useCallback((business, size, customName) => {
-    setGameState(prev => {
-      if (prev.balance < size.cost) return prev;
-      return {
-        ...prev,
-        balance: prev.balance - size.cost,
-        ownedBusinesses: [...prev.ownedBusinesses, {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          businessId: business.id,
-          businessName: business.name,
-          customName: customName || `${size.type} ${business.name}`,
-          sizeType: size.type,
-          incomePerHour: size.incomePerHour,
-          purchaseCost: size.cost,
-          purchasedAt: new Date().toISOString()
-        }]
-      };
+  const setActiveCard = useCallback((cardId) => {
+    setState(p => {
+      const tier = CARD_TIERS.find(t => t.id === cardId);
+      if (!tier || p.balance < tier.minBalance) return p;
+      return { ...p, activeCardId: cardId };
     });
   }, []);
 
-  const handleSellBusiness = useCallback((ownedId) => {
-    setGameState(prev => {
-      const businessToSell = prev.ownedBusinesses.find(o => o.id === ownedId);
-      if (!businessToSell) return prev;
-      const sellPrice = getSellPrice(businessToSell);
-      return {
-        ...prev,
-        balance: prev.balance + sellPrice,
-        ownedBusinesses: prev.ownedBusinesses.filter(o => o.id !== ownedId)
+  const startBizBoost = useCallback((percent = BIZ_BOOST_PERCENT) => {
+    const endTime = Date.now() + BIZ_BOOST_DURATION * 1000;
+    setState(p => ({ ...p, bizBoostActive: true, bizBoostPercent: percent, bizBoostEndTime: endTime }));
+    setBizBoostRemaining(BIZ_BOOST_DURATION);
+  }, []);
+
+  // ═══ BUSINESS ACTIONS ═══
+  const buyBusiness = useCallback((info) => {
+    setState(p => {
+      if (p.balance < info.cost) return p;
+      const newBiz = {
+        id: generateId('biz'), name: info.name, categoryId: info.categoryId,
+        subCategoryId: info.subCategoryId || null,
+        categoryName: info.categoryName || '', subCategoryName: info.subCategoryName || '',
+        cost: info.cost, incomePerHour: Math.floor(info.cost * BUSINESS_INCOME_RATE),
+        purchasedAt: Date.now(), level: 1, totalEarnings: 0,
+        expansionEndTime: null, bizAdBoostEndTime: null, bizAdBoostPercent: 0,
+        staff: {}, vehicles: [], equipment: {}, inventory: {},
+        licenses: {}, locations: 1, branches: 0, resources: {},
+        projects: [], bankSettings: null, parkingExpansions: 0,
       };
+      const newOwned = [newBiz, ...p.ownedBusinesses];
+      return { ...p, balance: p.balance - info.cost, ownedBusinesses: newOwned,
+        incomePerHour: calcTotalIncome(newOwned, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
     });
   }, []);
 
-  const handleMerge = useCallback((merger) => {
-    setGameState(prev => {
-      if (prev.mergedBusinesses.includes(merger.id)) return prev;
-      const canMerge = merger.requirements.every(req => {
-        const count = prev.ownedBusinesses.filter(
-          o => o.businessId === req.businessId
-        ).length;
-        return count >= req.minCount;
-      });
-      if (!canMerge) return prev;
-      return {
-        ...prev,
-        mergedBusinesses: [...prev.mergedBusinesses, merger.id]
-      };
-    });
-  }, []);
-
-  const getOwnedCount = useCallback((businessId) => {
-    return ownedBusinesses.filter(o => o.businessId === businessId).length;
-  }, [ownedBusinesses]);
-
-  const buyStock = useCallback((stockId, quantity, pricePerUnit) => {
-    const totalCost = quantity * pricePerUnit;
-
-    setGameState(prev => {
-      if (prev.balance < totalCost) return prev;
-
-      const existingIndex = prev.ownedStocks.findIndex(s => s.stockId === stockId);
-      let newOwnedStocks;
-
-      if (existingIndex >= 0) {
-        newOwnedStocks = [...prev.ownedStocks];
-        const existing = newOwnedStocks[existingIndex];
-        const totalQty = existing.quantity + quantity;
-        const totalValue = (existing.avgBuyPrice * existing.quantity) + (pricePerUnit * quantity);
-        newOwnedStocks[existingIndex] = {
-          ...existing,
-          quantity: totalQty,
-          avgBuyPrice: Math.round((totalValue / totalQty) * 100) / 100
-        };
-      } else {
-        newOwnedStocks = [...prev.ownedStocks, {
-          stockId,
-          quantity,
-          avgBuyPrice: pricePerUnit,
-          purchasedAt: new Date().toISOString()
-        }];
-      }
-
-      return {
-        ...prev,
-        balance: prev.balance - totalCost,
-        ownedStocks: newOwnedStocks
-      };
-    });
-  }, []);
-
-  const sellStock = useCallback((stockId, quantity, pricePerUnit) => {
-    setGameState(prev => {
-      const existingIndex = prev.ownedStocks.findIndex(s => s.stockId === stockId);
-      if (existingIndex < 0) return prev;
-
-      const existing = prev.ownedStocks[existingIndex];
-      if (existing.quantity < quantity) return prev;
-
-      const totalRevenue = quantity * pricePerUnit;
-      let newOwnedStocks = [...prev.ownedStocks];
-
-      if (existing.quantity === quantity) {
-        newOwnedStocks.splice(existingIndex, 1);
-      } else {
-        newOwnedStocks[existingIndex] = {
-          ...existing,
-          quantity: existing.quantity - quantity
-        };
-      }
-
-      return {
-        ...prev,
-        balance: prev.balance + totalRevenue,
-        ownedStocks: newOwnedStocks
-      };
-    });
-  }, []);
-
-  const buyProperty = useCallback((property) => {
-    setGameState(prev => {
-      if (prev.balance < property.price) return prev;
-
-      return {
-        ...prev,
-        balance: prev.balance - property.price,
-        ownedProperties: [...prev.ownedProperties, {
-          ...property,
-          ownId: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          improvements: [],
-          purchasedAt: new Date().toISOString()
-        }]
-      };
-    });
-  }, []);
-
-  const improveProperty = useCallback((ownId, improvement) => {
-    setGameState(prev => {
-      const propIndex = prev.ownedProperties.findIndex(p => p.ownId === ownId);
-      if (propIndex < 0) return prev;
-
-      const prop = prev.ownedProperties[propIndex];
-      if (prev.balance < improvement.cost) return prev;
-      if (prop.improvements.find(i => i.id === improvement.id)) return prev;
-
-      const newProps = [...prev.ownedProperties];
-      newProps[propIndex] = {
-        ...prop,
-        improvements: [...prop.improvements, improvement]
-      };
-
-      return {
-        ...prev,
-        balance: prev.balance - improvement.cost,
-        ownedProperties: newProps
-      };
-    });
-  }, []);
-
-  const sellProperty = useCallback((ownId) => {
-    setGameState(prev => {
-      const propIndex = prev.ownedProperties.findIndex(p => p.ownId === ownId);
-      if (propIndex < 0) return prev;
-
-      const prop = prev.ownedProperties[propIndex];
-      const baseSellPrice = (prop.price || 0) * 0.7;
-      const improvementValue = (prop.improvements || []).reduce(
-        (sum, imp) => sum + (imp.cost || 0) * 0.5, 0
+  const startExpansion = useCallback((bizId) => {
+    setState(p => {
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz || biz.level >= MAX_BUSINESS_LEVEL || biz.expansionEndTime) return p;
+      const cat = getCategoryById(biz.categoryId);
+      const cost = Math.floor((cat?.expansionBase || biz.cost * 0.3) * Math.pow(1.5, biz.level - 1));
+      if (p.balance < cost) return p;
+      const duration = (cat?.expansionTime || 2400) * 1000;
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, expansionEndTime: Date.now() + duration } : b
       );
-      const totalSellPrice = Math.floor(baseSellPrice + improvementValue);
-
-      const newProps = [...prev.ownedProperties];
-      newProps.splice(propIndex, 1);
-
-      return {
-        ...prev,
-        balance: prev.balance + totalSellPrice,
-        ownedProperties: newProps
-      };
+      return { ...p, balance: p.balance - cost, ownedBusinesses: updated };
     });
   }, []);
 
-  const buyCrypto = useCallback((cryptoId, quantity, pricePerUnit) => {
-    const totalCost = quantity * pricePerUnit;
+  const skipExpansion = useCallback((bizId) => {
+    setState(p => {
+      const updated = p.ownedBusinesses.map(biz => {
+        if (biz.id !== bizId || !biz.expansionEndTime) return biz;
+        const cat = getCategoryById(biz.categoryId);
+        const growth = cat?.profitGrowthPercent || 15;
+        return { ...biz, level: Math.min((biz.level || 1) + 1, MAX_BUSINESS_LEVEL),
+          incomePerHour: Math.floor(biz.incomePerHour * (1 + growth / 100)), expansionEndTime: null };
+      });
+      return { ...p, ownedBusinesses: updated, incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
 
-    setGameState(prev => {
-      if (prev.balance < totalCost) return prev;
+  const renameBusiness = useCallback((bizId, newName) => {
+    setState(p => {
+      if (p.balance < RENAME_COST || !newName?.trim() || newName.trim().length < 2) return p;
+      const updated = p.ownedBusinesses.map(b => b.id === bizId ? { ...b, name: newName.trim() } : b);
+      return { ...p, balance: p.balance - RENAME_COST, ownedBusinesses: updated };
+    });
+  }, []);
 
-      const existingIndex = prev.ownedCrypto.findIndex(c => c.cryptoId === cryptoId);
-      let newOwnedCrypto;
+  const closeBusiness = useCallback((bizId, fullRefund = false) => {
+    setState(p => {
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz) return p;
+      const refund = Math.floor(biz.cost * (fullRefund ? CLOSE_REFUND_AD : CLOSE_REFUND_NORMAL));
+      const updated = p.ownedBusinesses.filter(b => b.id !== bizId);
+      return { ...p, balance: p.balance + refund, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
 
-      if (existingIndex >= 0) {
-        newOwnedCrypto = [...prev.ownedCrypto];
-        const existing = newOwnedCrypto[existingIndex];
-        const totalQty = existing.quantity + quantity;
-        const totalValue = (existing.avgBuyPrice * existing.quantity) + (pricePerUnit * quantity);
-        newOwnedCrypto[existingIndex] = {
-          ...existing,
-          quantity: totalQty,
-          avgBuyPrice: totalValue / totalQty
-        };
-      } else {
-        newOwnedCrypto = [...prev.ownedCrypto, {
-          cryptoId,
-          quantity,
-          avgBuyPrice: pricePerUnit,
-          purchasedAt: new Date().toISOString()
-        }];
+  const startBizAdBoost = useCallback((bizId, percent = 15, hours = 4) => {
+    setState(p => {
+      const endTime = Date.now() + hours * 3600 * 1000;
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, bizAdBoostEndTime: endTime, bizAdBoostPercent: percent } : b
+      );
+      return { ...p, ownedBusinesses: updated };
+    });
+  }, []);
+
+  const getExpansionCost = useCallback((bizId) => {
+    const biz = state.ownedBusinesses.find(b => b.id === bizId);
+    if (!biz) return 0;
+    const cat = getCategoryById(biz.categoryId);
+    return Math.floor((cat?.expansionBase || biz.cost * 0.3) * Math.pow(1.5, (biz.level || 1) - 1));
+  }, [state.ownedBusinesses]);
+
+  // ═══ MANAGEMENT ACTIONS ═══
+  const hireStaff = useCallback((bizId, staffType, count, totalCost) => {
+    setState(p => {
+      if (p.balance < totalCost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const s = { ...b.staff }; s[staffType] = (s[staffType] || 0) + count;
+        return { ...b, staff: s };
+      });
+      return { ...p, balance: p.balance - totalCost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const fireStaff = useCallback((bizId, staffType, count) => {
+    setState(p => {
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const s = { ...b.staff }; s[staffType] = Math.max(0, (s[staffType] || 0) - count);
+        if (s[staffType] === 0) delete s[staffType];
+        return { ...b, staff: s };
+      });
+      return { ...p, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const buyVehicle = useCallback((bizId, vehicleType, vehicleData) => {
+    setState(p => {
+      if (p.balance < vehicleData.cost) return p;
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz) return p;
+      const vc = VEHICLE_CATEGORIES[biz.categoryId];
+      const slots = (vc?.parkingDefault || 10) + ((biz.parkingExpansions || 0) * (vc?.parkingExpansionSlots || 5));
+      if ((biz.vehicles || []).filter(v => v.active).length >= slots) return p;
+      const nv = {
+        id: generateId('veh'), type: vehicleType, name: vehicleData.name,
+        cost: vehicleData.cost, incomePerHour: vehicleData.incomePerHour,
+        maxKm: vehicleData.maxKm, kmDriven: 0, active: true,
+        purchasedAt: Date.now(), retiredAt: null,
+        capacity: vehicleData.capacity || null, range: vehicleData.range || null,
+      };
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, vehicles: [...(b.vehicles || []), nv] } : b
+      );
+      return { ...p, balance: p.balance - vehicleData.cost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const expandParking = useCallback((bizId) => {
+    setState(p => {
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz) return p;
+      const cost = VEHICLE_CATEGORIES[biz.categoryId]?.parkingExpansionCost || 25000;
+      if (p.balance < cost) return p;
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, parkingExpansions: (b.parkingExpansions || 0) + 1 } : b
+      );
+      return { ...p, balance: p.balance - cost, ownedBusinesses: updated };
+    });
+  }, []);
+
+  const buyEquipment = useCallback((bizId, equipmentId, count, totalCost) => {
+    setState(p => {
+      if (p.balance < totalCost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const eq = { ...b.equipment }; eq[equipmentId] = (eq[equipmentId] || 0) + count;
+        return { ...b, equipment: eq };
+      });
+      return { ...p, balance: p.balance - totalCost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const buyLicense = useCallback((bizId, licenseId, cost) => {
+    setState(p => {
+      if (p.balance < cost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const lic = { ...b.licenses }; lic[licenseId] = true;
+        return { ...b, licenses: lic };
+      });
+      return { ...p, balance: p.balance - cost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const buyInventory = useCallback((bizId, inventoryId, amount, cost) => {
+    setState(p => {
+      if (p.balance < cost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const inv = { ...b.inventory }; inv[inventoryId] = (inv[inventoryId] || 0) + amount;
+        return { ...b, inventory: inv };
+      });
+      return { ...p, balance: p.balance - cost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const buyResources = useCallback((bizId, resourceId, quantity, totalCost) => {
+    setState(p => {
+      if (p.balance < totalCost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const res = { ...b.resources }; res[resourceId] = (res[resourceId] || 0) + quantity;
+        return { ...b, resources: res };
+      });
+      return { ...p, balance: p.balance - totalCost, ownedBusinesses: updated };
+    });
+  }, []);
+
+  const startProject = useCallback((bizId, project) => {
+    setState(p => {
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz) return p;
+      if ((biz.projects || []).some(pr => pr.projectId === project.id && pr.status === 'active')) return p;
+      if ((biz.projects || []).filter(pr => pr.status === 'active').length >= 3) return p;
+      const np = {
+        id: generateId('proj'), projectId: project.id, name: project.name,
+        reward: project.reward, status: 'active',
+        startTime: Date.now(), endTime: Date.now() + project.duration * 1000,
+      };
+      if (project.resources) {
+        const res = { ...biz.resources };
+        for (const [rId, qty] of Object.entries(project.resources)) {
+          if ((res[rId] || 0) < qty) return p;
+        }
+        for (const [rId, qty] of Object.entries(project.resources)) {
+          res[rId] -= qty; if (res[rId] <= 0) delete res[rId];
+        }
+        const updated = p.ownedBusinesses.map(b =>
+          b.id === bizId ? { ...b, resources: res, projects: [...(b.projects || []), np] } : b
+        );
+        return { ...p, ownedBusinesses: updated };
       }
-
-      return {
-        ...prev,
-        balance: prev.balance - totalCost,
-        ownedCrypto: newOwnedCrypto
-      };
-    });
-  }, []);
-
-  const sellCrypto = useCallback((cryptoId, quantity, pricePerUnit) => {
-    setGameState(prev => {
-      const existingIndex = prev.ownedCrypto.findIndex(c => c.cryptoId === cryptoId);
-      if (existingIndex < 0) return prev;
-
-      const existing = prev.ownedCrypto[existingIndex];
-      if (existing.quantity < quantity) return prev;
-
-      const totalRevenue = quantity * pricePerUnit;
-      let newOwnedCrypto = [...prev.ownedCrypto];
-
-      if (existing.quantity === quantity) {
-        newOwnedCrypto.splice(existingIndex, 1);
-      } else {
-        newOwnedCrypto[existingIndex] = {
-          ...existing,
-          quantity: existing.quantity - quantity
-        };
+      if (project.requirements) {
+        const staff = biz.staff || {};
+        for (const [role, count] of Object.entries(project.requirements)) {
+          if ((staff[role] || 0) < count) return p;
+        }
+        const updated = p.ownedBusinesses.map(b =>
+          b.id === bizId ? { ...b, projects: [...(b.projects || []), np] } : b
+        );
+        return { ...p, ownedBusinesses: updated };
       }
+      return p;
+    });
+  }, []);
 
+  const collectProjectReward = useCallback((bizId, projectInstanceId) => {
+    setState(p => {
+      const biz = p.ownedBusinesses.find(b => b.id === bizId);
+      if (!biz) return p;
+      const proj = (biz.projects || []).find(pr => pr.id === projectInstanceId && pr.status === 'completed');
+      if (!proj) return p;
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, projects: b.projects.filter(pr => pr.id !== projectInstanceId) } : b
+      );
+      return { ...p, balance: p.balance + proj.reward, ownedBusinesses: updated };
+    });
+  }, []);
+
+  const updateBankSettings = useCallback((bizId, settings) => {
+    setState(p => {
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, bankSettings: { ...(b.bankSettings || {}), ...settings } } : b
+      );
+      return { ...p, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const buyBankFacility = useCallback((bizId, facilityId, cost) => {
+    setState(p => {
+      if (p.balance < cost) return p;
+      const updated = p.ownedBusinesses.map(b => {
+        if (b.id !== bizId) return b;
+        const s = b.bankSettings || {};
+        const f = { ...(s.facilities || {}) }; f[facilityId] = true;
+        return { ...b, bankSettings: { ...s, facilities: f } };
+      });
+      return { ...p, balance: p.balance - cost, ownedBusinesses: updated,
+        incomePerHour: calcTotalIncome(updated, p.mergedBusinesses, p.ownedProperties, p.ownedStocks) };
+    });
+  }, []);
+
+  const removeRetiredVehicles = useCallback((bizId) => {
+    setState(p => {
+      const updated = p.ownedBusinesses.map(b =>
+        b.id === bizId ? { ...b, vehicles: (b.vehicles || []).filter(v => v.active) } : b
+      );
+      return { ...p, ownedBusinesses: updated };
+    });
+  }, []);
+
+  // ═══ MERGER ACTION ═══
+  const startMerger = useCallback((merger) => {
+    setState(p => {
+      if (p.balance < merger.investment) return p;
+      if ((p.mergedBusinesses || []).some(m => m.mergerId === merger.id)) return p;
+      const allMet = merger.requirements.every(req => {
+        if (req.type === 'categories') {
+          const unique = new Set(p.ownedBusinesses.map(b => b.categoryId));
+          return unique.size >= req.count;
+        }
+        const matching = p.ownedBusinesses.filter(b => {
+          if (b.categoryId !== req.categoryId) return false;
+          if (req.subCategoryId && b.subCategoryId !== req.subCategoryId) return false;
+          return true;
+        });
+        return matching.length >= req.count;
+      });
+      if (!allMet) return p;
+      const newMerged = {
+        id: generateId('merged'), mergerId: merger.id, name: merger.name,
+        incomePerHour: merger.incomePerHour, startedAt: Date.now(),
+      };
+      const updatedMerged = [...(p.mergedBusinesses || []), newMerged];
       return {
-        ...prev,
-        balance: prev.balance + totalRevenue,
-        ownedCrypto: newOwnedCrypto
+        ...p, balance: p.balance - merger.investment,
+        mergedBusinesses: updatedMerged,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, updatedMerged, p.ownedProperties, p.ownedStocks),
       };
     });
   }, []);
 
-  const getStockPrice = useCallback((stockId) => {
-    return stockPriceHistory[stockId] || 0;
-  }, [stockPriceHistory]);
+  // ═══ STOCK ACTIONS ═══
+  const buyStock = useCallback((stockId, quantity, pricePerShare) => {
+    setState(p => {
+      const totalCost = quantity * pricePerShare;
+      if (p.balance < totalCost) return p;
+      const existing = p.ownedStocks.find(s => s.stockId === stockId);
+      let newOwned;
+      if (existing) {
+        const totalShares = existing.quantity + quantity;
+        const totalValue = (existing.avgBuyPrice * existing.quantity) + totalCost;
+        const newAvgPrice = Math.floor(totalValue / totalShares);
+        newOwned = p.ownedStocks.map(s =>
+          s.stockId === stockId ? { ...s, quantity: totalShares, avgBuyPrice: newAvgPrice } : s
+        );
+      } else {
+        newOwned = [...p.ownedStocks, { stockId, quantity, avgBuyPrice: pricePerShare, purchasedAt: Date.now() }];
+      }
+      return {
+        ...p, balance: p.balance - totalCost, ownedStocks: newOwned,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, p.mergedBusinesses, p.ownedProperties, newOwned),
+      };
+    });
+  }, []);
 
-  const getCryptoPrice = useCallback((cryptoId) => {
-    return cryptoPriceHistory[cryptoId] || 0;
-  }, [cryptoPriceHistory]);
+  const sellStock = useCallback((stockId, quantity, pricePerShare) => {
+    setState(p => {
+      const existing = p.ownedStocks.find(s => s.stockId === stockId);
+      if (!existing || existing.quantity < quantity) return p;
+      const proceeds = quantity * pricePerShare;
+      const remaining = existing.quantity - quantity;
+      let newOwned;
+      if (remaining <= 0) {
+        newOwned = p.ownedStocks.filter(s => s.stockId !== stockId);
+      } else {
+        newOwned = p.ownedStocks.map(s => s.stockId === stockId ? { ...s, quantity: remaining } : s);
+      }
+      return {
+        ...p, balance: p.balance + proceeds, ownedStocks: newOwned,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, p.mergedBusinesses, p.ownedProperties, newOwned),
+      };
+    });
+  }, []);
 
+  // ═══ CRYPTO ACTIONS ═══
+  const buyCrypto = useCallback((cryptoId, quantity, pricePerCoin) => {
+    setState(p => {
+      const totalCost = Math.floor(quantity * pricePerCoin);
+      if (p.balance < totalCost) return p;
+      const existing = p.ownedCrypto.find(c => c.cryptoId === cryptoId);
+      let newOwned;
+      if (existing) {
+        const totalCoins = parseFloat((existing.quantity + quantity).toFixed(8));
+        const totalValue = (existing.avgBuyPrice * existing.quantity) + totalCost;
+        const newAvgPrice = Math.floor(totalValue / totalCoins);
+        newOwned = p.ownedCrypto.map(c =>
+          c.cryptoId === cryptoId ? { ...c, quantity: totalCoins, avgBuyPrice: newAvgPrice } : c
+        );
+      } else {
+        newOwned = [...p.ownedCrypto, { cryptoId, quantity: parseFloat(quantity.toFixed(8)), avgBuyPrice: pricePerCoin, purchasedAt: Date.now() }];
+      }
+      return { ...p, balance: p.balance - totalCost, ownedCrypto: newOwned };
+    });
+  }, []);
+
+  const sellCrypto = useCallback((cryptoId, quantity, pricePerCoin) => {
+    setState(p => {
+      const existing = p.ownedCrypto.find(c => c.cryptoId === cryptoId);
+      if (!existing || existing.quantity + 0.00000001 < quantity) return p;
+      const proceeds = Math.floor(quantity * pricePerCoin);
+      const remaining = parseFloat((existing.quantity - quantity).toFixed(8));
+      let newOwned;
+      if (remaining <= 0.00000001) {
+        newOwned = p.ownedCrypto.filter(c => c.cryptoId !== cryptoId);
+      } else {
+        newOwned = p.ownedCrypto.map(c => c.cryptoId === cryptoId ? { ...c, quantity: remaining } : c);
+      }
+      return { ...p, balance: p.balance + proceeds, ownedCrypto: newOwned };
+    });
+  }, []);
+
+  // ═══ PROPERTY ACTIONS ═══
+  const buyProperty = useCallback((propertyId) => {
+    setState(p => {
+      const prop = PROPERTIES.find(pr => pr.id === propertyId);
+      if (!prop || p.balance < prop.price) return p;
+      if (p.ownedProperties.some(op => op.propertyId === propertyId)) return p;
+      const newOwned = [...p.ownedProperties, { propertyId, purchasedAt: Date.now(), purchasePrice: prop.price, improvements: [] }];
+      return {
+        ...p, balance: p.balance - prop.price, ownedProperties: newOwned,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, p.mergedBusinesses, newOwned, p.ownedStocks),
+      };
+    });
+  }, []);
+
+  const sellProperty = useCallback((propertyId) => {
+    setState(p => {
+      const owned = p.ownedProperties.find(op => op.propertyId === propertyId);
+      if (!owned) return p;
+      const marketValue = getPropertyMarketValue(propertyId, owned.improvements || []);
+      const afterTax = Math.floor(marketValue * (1 - PROPERTY_SELL_TAX));
+      const newOwned = p.ownedProperties.filter(op => op.propertyId !== propertyId);
+      return {
+        ...p, balance: p.balance + afterTax, ownedProperties: newOwned,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, p.mergedBusinesses, newOwned, p.ownedStocks),
+      };
+    });
+  }, []);
+
+  const buyImprovement = useCallback((propertyId, improvementId, cost) => {
+    setState(p => {
+      if (p.balance < cost) return p;
+      const newOwned = p.ownedProperties.map(op => {
+        if (op.propertyId !== propertyId) return op;
+        if ((op.improvements || []).includes(improvementId)) return op;
+        return { ...op, improvements: [...(op.improvements || []), improvementId] };
+      });
+      return {
+        ...p, balance: p.balance - cost, ownedProperties: newOwned,
+        incomePerHour: calcTotalIncome(p.ownedBusinesses, p.mergedBusinesses, newOwned, p.ownedStocks),
+      };
+    });
+  }, []);
+
+  // ═══ ITEMS - CAR ACTIONS ═══
+  const buyCar = useCallback((info) => {
+    setState(p => {
+      if (p.balance < info.totalPrice) return p;
+      const car = {
+        id: generateId('car'),
+        carDefId: info.carDefId,
+        name: info.name,
+        image: info.image,
+        basePrice: info.basePrice,
+        engineType: info.engineType,
+        equipmentType: info.equipmentType,
+        totalPrice: info.totalPrice,
+        purchasedAt: Date.now(),
+      };
+      return {
+        ...p,
+        balance: p.balance - info.totalPrice,
+        ownedCars: [...(p.ownedCars || []), car],
+      };
+    });
+  }, []);
+
+  const sellCar = useCallback((carId) => {
+    setState(p => {
+      const car = (p.ownedCars || []).find(c => c.id === carId);
+      if (!car) return p;
+      const salePrice = Math.floor(car.totalPrice * CAR_SELL_PERCENT);
+      return {
+        ...p,
+        balance: p.balance + salePrice,
+        ownedCars: (p.ownedCars || []).filter(c => c.id !== carId),
+      };
+    });
+  }, []);
+
+  // ═══ ITEMS - AIRCRAFT ACTIONS ═══
+  const buyAircraft = useCallback((info) => {
+    setState(p => {
+      if (p.balance < info.totalPrice) return p;
+      const ac = {
+        id: generateId('air'),
+        acDefId: info.acDefId,
+        name: info.name,
+        image: info.image,
+        basePrice: info.basePrice,
+        teamHired: info.teamHired,
+        designType: info.designType,
+        totalPrice: info.totalPrice,
+        purchasedAt: Date.now(),
+      };
+      return {
+        ...p,
+        balance: p.balance - info.totalPrice,
+        ownedAircraft: [...(p.ownedAircraft || []), ac],
+      };
+    });
+  }, []);
+
+  const sellAircraft = useCallback((acId) => {
+    setState(p => {
+      const ac = (p.ownedAircraft || []).find(a => a.id === acId);
+      if (!ac) return p;
+      const salePrice = Math.floor(ac.totalPrice * AIRCRAFT_SELL_PERCENT);
+      return {
+        ...p,
+        balance: p.balance + salePrice,
+        ownedAircraft: (p.ownedAircraft || []).filter(a => a.id !== acId),
+      };
+    });
+  }, []);
+
+  // ═══ ITEMS - YACHT ACTIONS ═══
+  const buyYacht = useCallback((info) => {
+    setState(p => {
+      if (p.balance < info.totalPrice) return p;
+      const yacht = {
+        id: generateId('yacht'),
+        yachtDefId: info.yachtDefId,
+        name: info.name,
+        image: info.image,
+        basePrice: info.basePrice,
+        teamHired: info.teamHired,
+        designType: info.designType,
+        locationId: info.locationId || 'public_harbor',
+        totalPrice: info.totalPrice,
+        purchasedAt: Date.now(),
+      };
+      return {
+        ...p,
+        balance: p.balance - info.totalPrice,
+        ownedYachts: [...(p.ownedYachts || []), yacht],
+      };
+    });
+  }, []);
+
+  const sellYacht = useCallback((yachtId) => {
+    setState(p => {
+      const yacht = (p.ownedYachts || []).find(y => y.id === yachtId);
+      if (!yacht) return p;
+      const salePrice = Math.floor(yacht.totalPrice * 0.70);
+      return {
+        ...p,
+        balance: p.balance + salePrice,
+        ownedYachts: (p.ownedYachts || []).filter(y => y.id !== yachtId),
+      };
+    });
+  }, []);
+
+  const updateYachtLocation = useCallback((yachtId, locationId) => {
+    setState(p => ({
+      ...p,
+      ownedYachts: (p.ownedYachts || []).map(y =>
+        y.id === yachtId ? { ...y, locationId } : y
+      ),
+    }));
+  }, []);
+
+  // ═══ ITEMS - COLLECTION ACTIONS ═══
+  const buyCollectionItem = useCallback((collectionKey, itemId, price) => {
+    setState(p => {
+      if (p.balance < price) return p;
+      const current = (p.ownedCollections || {})[collectionKey] || [];
+      if (current.includes(itemId)) return p;
+      return {
+        ...p,
+        balance: p.balance - price,
+        ownedCollections: {
+          ...(p.ownedCollections || {}),
+          [collectionKey]: [...current, itemId],
+        },
+      };
+    });
+  }, []);
+
+  const sellCollectionItem = useCallback((collectionKey, itemId) => {
+    setState(p => {
+      const current = (p.ownedCollections || {})[collectionKey] || [];
+      if (!current.includes(itemId)) return p;
+      const col = COLLECTIONS[collectionKey];
+      const item = col?.items.find(i => i.id === itemId);
+      if (!item) return p;
+      return {
+        ...p,
+        balance: p.balance + item.sellPrice,
+        ownedCollections: {
+          ...(p.ownedCollections || {}),
+          [collectionKey]: current.filter(id => id !== itemId),
+        },
+      };
+    });
+  }, []);
+
+  // ═══ ITEMS - NFT ACTIONS ═══
+  const buyNFT = useCallback((nftId, cryptoId, cryptoAmount) => {
+    setState(p => {
+      if ((p.ownedNFTs || []).includes(nftId)) return p;
+      const crypto = (p.ownedCrypto || []).find(c => c.cryptoId === cryptoId);
+      if (!crypto || crypto.quantity < cryptoAmount) return p;
+      const remaining = parseFloat((crypto.quantity - cryptoAmount).toFixed(8));
+      let newCrypto;
+      if (remaining <= 0.00000001) {
+        newCrypto = (p.ownedCrypto || []).filter(c => c.cryptoId !== cryptoId);
+      } else {
+        newCrypto = (p.ownedCrypto || []).map(c =>
+          c.cryptoId === cryptoId ? { ...c, quantity: remaining } : c
+        );
+      }
+      return {
+        ...p,
+        ownedCrypto: newCrypto,
+        ownedNFTs: [...(p.ownedNFTs || []), nftId],
+      };
+    });
+  }, []);
+
+  // ═══ ITEMS - ISLAND ACTIONS ═══
+  const buyIsland = useCallback((islandId, price) => {
+    setState(p => {
+      if (p.balance < price) return p;
+      if ((p.ownedIslands || []).some(i => i.islandId === islandId)) return p;
+      return {
+        ...p,
+        balance: p.balance - price,
+        ownedIslands: [...(p.ownedIslands || []), {
+          islandId,
+          purchasePrice: price,
+          purchasedAt: Date.now(),
+        }],
+      };
+    });
+  }, []);
+
+  const sellIsland = useCallback((islandId) => {
+    setState(p => {
+      const island = (p.ownedIslands || []).find(i => i.islandId === islandId);
+      if (!island) return p;
+      const salePrice = Math.floor(island.purchasePrice * (1 - ISLAND_SELL_LOSS_PERCENT));
+      return {
+        ...p,
+        balance: p.balance + salePrice,
+        ownedIslands: (p.ownedIslands || []).filter(i => i.islandId !== islandId),
+      };
+    });
+  }, []);
+
+  // ═══ RESET ═══
   const resetGame = useCallback(() => {
-    setGameState({ ...defaultState });
-    earningsBoostHook.restoreBoost('idle', 0);
-    businessBoostHook.restoreBoost('idle', 0);
-    incomeAccumulatorRef.current = 0;
-    localStorage.removeItem(STORAGE_KEY);
-  }, [earningsBoostHook, businessBoostHook]);
+    setState({ ...DEFAULTS });
+    setBoostActive(false); setBoostTimer(0); setAdStatus('idle');
+    setBizBoostRemaining(0); incomeAccRef.current = 0;
+    storage.clearGame();
+  }, []);
 
+  // ═══ CONTEXT VALUE ═══
   const value = useMemo(() => ({
-    // Earnings
-    balance, level, baseClickRate, upgradeCost,
-    totalClicks, currentPerClick, offlineEarnings,
-
-    // Earnings boost
-    earningsBoostActive: earningsBoostHook.isActive,
-    earningsAdStatus: earningsBoostHook.adStatus,
-    earningsBoostTimer: earningsBoostHook.timer,
-    startEarningsAd: earningsBoostHook.startAd,
-
-    // Business boost
-    businessBoostActive: businessBoostHook.isActive,
-    businessAdStatus: businessBoostHook.adStatus,
-    businessBoostTimer: businessBoostHook.timer,
-    startBusinessAd: businessBoostHook.startAd,
-
-    // Core actions
-    handleTap, handleUpgrade, addBonus,
-    clearOfflineEarnings, resetGame,
-
+    ...state, currentPerClick, currentTier, availableUpgrades, boostedIncomePerHour,
+    boostActive, boostTimer, adStatus, bizBoostRemaining,
+    // Core
+    handleTap, handleUpgrade, startAd, setActiveCard, startBizBoost, resetGame,
     // Business
-    ownedBusinesses, mergedBusinesses,
-    calculateTotalIncome, getOwnedCount,
-    handleBuyBusiness, handleMerge, handleSellBusiness,
-
-    // Investing
-    ownedStocks, ownedProperties, ownedCrypto,
-    stockPriceHistory, cryptoPriceHistory,
-    getStockPrice, getCryptoPrice,
+    buyBusiness, startExpansion, skipExpansion, renameBusiness, closeBusiness,
+    startBizAdBoost, getExpansionCost,
+    // Management
+    hireStaff, fireStaff, buyVehicle, expandParking, buyEquipment,
+    buyLicense, buyInventory, buyResources, startProject,
+    collectProjectReward, updateBankSettings, buyBankFacility,
+    removeRetiredVehicles,
+    // Mergers
+    startMerger,
+    // Stocks
     buyStock, sellStock,
-    buyProperty, improveProperty, sellProperty,
+    // Crypto
     buyCrypto, sellCrypto,
-
-    setIsInvestingActive,
+    // Property
+    buyProperty, sellProperty, buyImprovement,
+    // Items - Cars
+    buyCar, sellCar,
+    // Items - Aircraft
+    buyAircraft, sellAircraft,
+    // Items - Yachts
+    buyYacht, sellYacht, updateYachtLocation,
+    // Items - Collections
+    buyCollectionItem, sellCollectionItem,
+    // Items - NFTs
+    buyNFT,
+    // Items - Islands
+    buyIsland, sellIsland,
   }), [
-    balance, level, baseClickRate, upgradeCost, totalClicks, currentPerClick, offlineEarnings,
-    earningsBoostHook.isActive, earningsBoostHook.adStatus, earningsBoostHook.timer, earningsBoostHook.startAd,
-    businessBoostHook.isActive, businessBoostHook.adStatus, businessBoostHook.timer, businessBoostHook.startAd,
-    handleTap, handleUpgrade, addBonus, clearOfflineEarnings, resetGame,
-    ownedBusinesses, mergedBusinesses, calculateTotalIncome, getOwnedCount,
-    handleBuyBusiness, handleMerge, handleSellBusiness,
-    ownedStocks, ownedProperties, ownedCrypto, stockPriceHistory, cryptoPriceHistory,
-    getStockPrice, getCryptoPrice, buyStock, sellStock, buyProperty, improveProperty, sellProperty,
-    buyCrypto, sellCrypto
+    state, currentPerClick, currentTier, availableUpgrades, boostedIncomePerHour,
+    boostActive, boostTimer, adStatus, bizBoostRemaining,
+    handleTap, handleUpgrade, startAd, setActiveCard, startBizBoost, resetGame,
+    buyBusiness, startExpansion, skipExpansion, renameBusiness, closeBusiness,
+    startBizAdBoost, getExpansionCost,
+    hireStaff, fireStaff, buyVehicle, expandParking, buyEquipment,
+    buyLicense, buyInventory, buyResources, startProject,
+    collectProjectReward, updateBankSettings, buyBankFacility,
+    removeRetiredVehicles, startMerger,
+    buyStock, sellStock, buyCrypto, sellCrypto,
+    buyProperty, sellProperty, buyImprovement,
+    buyCar, sellCar, buyAircraft, sellAircraft,
+    buyYacht, sellYacht, updateYachtLocation,
+    buyCollectionItem, sellCollectionItem, buyNFT,
+    buyIsland, sellIsland,
   ]);
 
-  return (
-    <GameContext.Provider value={value}>
-      {children}
-    </GameContext.Provider>
-  );
-}
-
-export function useGame() {
-  const context = useContext(GameContext);
-  if (!context) throw new Error('useGame must be used within GameProvider');
-  return context;
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

@@ -1,57 +1,28 @@
-// Number ne Indian currency format ma convert kare
-// Example: 1500 -> "₹1.5K", 250000 -> "₹2.50L"
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return '₹0';
-  }
+  if (amount === null || amount === undefined || isNaN(amount)) return '₹0';
+  const safeAmount = Math.min(Math.max(amount, -Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER);
+  const prefix = safeAmount < 0 ? '-' : '';
+  const abs = Math.abs(safeAmount);
 
-  const prefix = amount < 0 ? '-' : '';
-  const absAmount = Math.abs(amount);
-
-  if (absAmount >= 10000000) {
-    return `${prefix}₹${(absAmount / 10000000).toFixed(2)}Cr`;
-  }
-  if (absAmount >= 100000) {
-    return `${prefix}₹${(absAmount / 100000).toFixed(2)}L`;
-  }
-  if (absAmount >= 1000) {
-    return `${prefix}₹${(absAmount / 1000).toFixed(1)}K`;
-  }
-  
-  // Small decimal prices (crypto like 0.0018)
-  if (absAmount < 0.01 && absAmount > 0) return `${prefix}₹${absAmount.toFixed(6)}`;
-  if (absAmount < 1 && absAmount > 0) return `${prefix}₹${absAmount.toFixed(4)}`;
-  
-  return `${prefix}₹${absAmount.toLocaleString('en-IN')}`;
+  if (abs >= 1e17) return `${prefix}₹${(abs / 1e17).toFixed(2)}Sh`;
+  if (abs >= 1e15) return `${prefix}₹${(abs / 1e15).toFixed(2)}Pd`;
+  if (abs >= 1e13) return `${prefix}₹${(abs / 1e13).toFixed(2)}Nl`;
+  if (abs >= 1e11) return `${prefix}₹${(abs / 1e11).toFixed(2)}Kh`;
+  if (abs >= 1e9)  return `${prefix}₹${(abs / 1e9).toFixed(2)}Ar`;
+  if (abs >= 1e7)  return `${prefix}₹${(abs / 1e7).toFixed(2)}Cr`;
+  if (abs >= 1e5)  return `${prefix}₹${(abs / 1e5).toFixed(2)}L`;
+  if (abs >= 1e3)  return `${prefix}₹${(abs / 1e3).toFixed(1)}K`;
+  if (abs < 1 && abs > 0) return `${prefix}₹${abs.toFixed(2)}`;
+  return `${prefix}₹${Math.floor(abs).toLocaleString('en-IN')}`;
 };
 
-export const formatCurrencyFull = (amount) => {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return '₹0';
-  }
-  return `₹${Math.floor(amount).toLocaleString('en-IN')}`;
-};
-
-export const formatNumber = (amount) => {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return '0';
-  }
-
-  const prefix = amount < 0 ? '-' : '';
-  const absAmount = Math.abs(amount);
-
-  if (absAmount >= 10000000) return `${prefix}${(absAmount / 10000000).toFixed(1)}Cr`;
-  if (absAmount >= 100000) return `${prefix}${(absAmount / 100000).toFixed(1)}L`;
-  if (absAmount >= 1000) return `${prefix}${(absAmount / 1000).toFixed(1)}K`;
-  return amount.toLocaleString();
-};
-
-export const formatINR = formatCurrency;
-
-export const formatMarketCap = (num) => {
-  if (num === null || num === undefined) return '₹0';
-  if (num >= 1000000000000) return `₹${(num / 1000000000000).toFixed(1)}T`;
-  if (num >= 10000000) return `₹${(num / 10000000).toFixed(1)}Cr`;
-  if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
-  return `₹${num}`;
+export const formatNumber = (num) => {
+  if (!num && num !== 0) return '0';
+  const abs = Math.abs(num);
+  const prefix = num < 0 ? '-' : '';
+  if (abs >= 1e9)  return `${prefix}${(abs / 1e9).toFixed(1)}Ar`;
+  if (abs >= 1e7)  return `${prefix}${(abs / 1e7).toFixed(1)}Cr`;
+  if (abs >= 1e5)  return `${prefix}${(abs / 1e5).toFixed(1)}L`;
+  if (abs >= 1e3)  return `${prefix}${(abs / 1e3).toFixed(1)}K`;
+  return num.toLocaleString('en-IN');
 };

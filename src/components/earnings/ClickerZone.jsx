@@ -1,185 +1,152 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { IndianRupee, Sparkles } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { useState, useRef, useEffect } from 'react';
+import { IndianRupee, Sparkles, Play, Loader2, Zap } from 'lucide-react';
+import { useTheme } from '../../hooks/useTheme';
+import { theme } from '../../design/tokens';
+import { useGame } from '../../hooks/useGame';
 
-const ClickerZone = ({ onClick, isBoosted, perClick }) => {
-  const { isDarkTheme } = useTheme();
+function ClickerZone() {
+  const { isDark } = useTheme();
+  const t = isDark ? theme.dark : theme.light;
+  const {
+    handleTap, currentPerClick, perClick, boostActive,
+    adStatus, boostTimer, startAd
+  } = useGame();
 
+  const boostedPerClick = perClick * 2;
   const [scale, setScale] = useState(1);
-  const [floatingTexts, setFloatingTexts] = useState([]);
+  const [floats, setFloats] = useState([]);
+  const containerRef = useRef(null);
+  const timers = useRef([]);
 
-  // useRef for timeout tracking
-  // "timeoutsRef" naam raakhyu — built-in setTimeout override na thay
-  const timeoutsRef = useRef([]);
-
-  const colors = {
-    dark: {
-      textSecondary: 'text-gray-400',
-      containerBg: 'bg-gray-900',
-      containerBorder: 'border-gray-700'
-    },
-    light: {
-      textSecondary: 'text-gray-500',
-      containerBg: 'bg-gray-50',
-      containerBorder: 'border-gray-200'
-    }
-  };
-
-  const c = isDarkTheme ? colors.dark : colors.light;
-
-  // CSS keyframes inject — only once
   useEffect(() => {
-    const styleId = 'clicker-zone-styles';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @keyframes floatUp {
-          0% { opacity: 1; transform: translateY(0) scale(1); }
-          50% { opacity: 0.8; transform: translateY(-30px) scale(1.1); }
-          100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    return () => timers.current.forEach(id => clearTimeout(id));
   }, []);
 
-  // Cleanup all timeouts on unmount
-  useEffect(() => {
-    return () => {
-      timeoutsRef.current.forEach(id => clearTimeout(id));
-      timeoutsRef.current = [];
-    };
-  }, []);
-
-  // Handle both touch and mouse coordinates
-  const getEventCoordinates = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    // Touch event check (mobile)
-    if (e.touches && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-        rect
-      };
-    }
-
-    // Mouse event (desktop)
-    if (e.clientX !== 0 || e.clientY !== 0) {
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        rect
-      };
-    }
-
-    // Fallback: center of button (keyboard click / screen reader)
-    return {
-      x: rect.width / 2,
-      y: rect.height / 2,
-      rect
-    };
-  };
-
-  // Event Handler with Event Object
   const handleClick = (e) => {
-    // Button shrink animation
-    setScale(0.92);
-    const scaleTimerId = window.setTimeout(() => setScale(1), 100);
-    timeoutsRef.current.push(scaleTimerId);
+    setScale(0.88);
+    const s = setTimeout(() => setScale(1), 120);
+    timers.current.push(s);
 
-    // Coordinates for floating text position
-    const { x, y, rect } = getEventCoordinates(e);
+    const rect = containerRef.current.getBoundingClientRect();
+    const rawX = (e.touches?.[0]?.clientX || e.clientX || rect.width / 2) - rect.left;
+    const rawY = (e.touches?.[0]?.clientY || e.clientY || rect.height / 2) - rect.top;
+    const x = Math.max(10, Math.min(rawX + (Math.random() * 16 - 8), rect.width - 50));
+    const y = Math.max(10, Math.min(rawY, rect.height - 30));
 
-    // Floating text create
-    const newFloatingText = {
-      id: Date.now() + Math.random(),
-      x: Math.max(20, Math.min(x + (Math.random() * 20 - 10), rect.width - 40)),
-      y: y,
-      value: perClick
-    };
+    const id = Date.now() + Math.random();
+    setFloats(prev => [...prev, { id, x, y, value: currentPerClick }]);
 
-    // Functional setState with Array spread
-    setFloatingTexts(prev => [...prev, newFloatingText]);
-
-    // 1 second baad floating text remove kare
-    const floatTimerId = window.setTimeout(() => {
-      setFloatingTexts(prev => prev.filter(ft => ft.id !== newFloatingText.id));
-      timeoutsRef.current = timeoutsRef.current.filter(id => id !== floatTimerId);
+    const f = setTimeout(() => {
+      setFloats(prev => prev.filter(fl => fl.id !== id));
     }, 1000);
+    timers.current.push(f);
 
-    timeoutsRef.current.push(floatTimerId);
-
-    // Parent nu onClick call kard
-    onClick();
+    handleTap();
   };
 
   return (
-    <div className={`${c.containerBg} rounded-xl sm:rounded-2xl p-4 sm:p-6 
-      border ${c.containerBorder} transition-colors duration-300`}
+    <div
+      ref={containerRef}
+      onClick={handleClick}
+      onContextMenu={(e) => e.preventDefault()}
+      className={`flex-1 min-h-0 max-h-[50vh] relative rounded-2xl border
+        overflow-hidden cursor-pointer select-none touch-manipulation
+        flex items-center justify-center
+        ${t.bg.card} ${t.border.default}
+        transition-colors duration-300`}
     >
-      <div className="flex flex-col items-center justify-center">
-        <div className="relative">
-
-          {/* Array.map() for Dynamic Floating Text Elements */}
-          {floatingTexts.map(ft => (
-            <div
-              key={ft.id}
-              className={`absolute pointer-events-none z-20 font-bold 
-                text-base sm:text-lg whitespace-nowrap
-                ${isBoosted ? 'text-purple-300' : 'text-green-400'}`}
-              style={{
-                left: ft.x,
-                top: ft.y,
-                animation: 'floatUp 1s ease-out forwards'
-              }}
-            >
-              +₹{ft.value}
-            </div>
-          ))}
-
-          {/* Main Tap Button */}
+      {/* Boost Pill */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 left-1/2 -translate-x-1/2 z-30"
+      >
+        {adStatus === 'idle' && (
           <button
-            onClick={handleClick}
-            style={{ transform: `scale(${scale})` }}
-            className={`
-              relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48
-              rounded-full flex flex-col items-center justify-center
-              shadow-2xl transition-transform duration-100 ease-out border-4
-              active:scale-95 cursor-pointer select-none touch-manipulation
-              overflow-visible
-              ${isBoosted
-                ? 'bg-gradient-to-br from-purple-400 to-purple-600 border-purple-300 shadow-purple-500/40'
-                : 'bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-300 shadow-orange-500/40'
-              }
-            `}
-            onContextMenu={(e) => e.preventDefault()}
+            onClick={startAd}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full
+              text-[10px] font-bold transition-all
+              active:scale-90 hover:scale-105 shadow-lg
+              ${isDark
+                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300 shadow-purple-500/10'
+                : 'bg-purple-50 border border-purple-200 text-purple-600 shadow-purple-100'
+              }`}
           >
-            {/* Inner glow effect */}
-            <div className="absolute inset-2 rounded-full bg-white/10 pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col items-center pointer-events-none">
-              <div className="bg-white/20 p-2.5 sm:p-3 md:p-4 rounded-full mb-1.5 sm:mb-2">
-                {isBoosted ? (
-                  <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" strokeWidth={2.5} />
-                ) : (
-                  <IndianRupee className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" strokeWidth={2.5} />
-                )}
-              </div>
-              <span className="text-white font-black text-sm sm:text-base md:text-lg drop-shadow-md">
-                {isBoosted ? '2X BOOST!' : 'TAP KARO!'}
-              </span>
-            </div>
+            <Play className="w-4 h-4 fill-current" />
+            Watch Ad • ₹{boostedPerClick}/click
           </button>
-        </div>
+        )}
 
-        <p className={`mt-3 sm:mt-4 ${c.textSecondary} text-xs sm:text-sm text-center select-none`}>
-          {isBoosted ? '⚡ Boost Active!' : `Tap to earn ₹${perClick}`}
+        {adStatus === 'watching' && (
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full
+            text-[10px] font-medium
+            ${isDark
+              ? 'bg-gray-800/95 border border-gray-700 text-gray-300'
+              : 'bg-white/95 border border-gray-200 text-gray-600'
+            }`}>
+            <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+            Watching... {boostTimer}s
+          </div>
+        )}
+
+        {adStatus === 'boosted' && (
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full
+            text-[10px] font-bold animate-pulse
+            ${isDark
+              ? 'bg-purple-500/30 border border-purple-500/50 text-purple-300'
+              : 'bg-purple-100 border border-purple-300 text-purple-600'
+            }`}>
+            <Zap className="w-3 h-3 fill-current" />
+            ₹{boostedPerClick}/click • {boostTimer}s
+          </div>
+        )}
+      </div>
+
+      {/* Floating Texts */}
+      {floats.map(f => (
+        <div
+          key={f.id}
+          className={`absolute pointer-events-none z-20 font-bold text-base
+            ${boostActive ? 'text-purple-400' : 'text-green-400'}`}
+          style={{
+            left: f.x,
+            top: f.y,
+            animation: 'float-up 1s ease-out forwards',
+          }}
+        >
+          +₹{f.value}
+        </div>
+      ))}
+
+      <div className="pointer-events-none flex flex-col items-center gap-1.5">
+        <div
+          style={{ transform: `scale(${scale})` }}
+          className={`w-30 h-30 sm:w-30 sm:h-30 md:w-34 md:h-34 lg:h-42 lg:w-42
+            rounded-full flex items-center justify-center
+            shadow-2xl transition-transform duration-100 border-4
+            ${boostActive
+              ? 'bg-gradient-to-br from-purple-400 to-purple-600 border-purple-300 shadow-purple-500/30'
+              : 'bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-300 shadow-orange-500/30'
+            }`}
+        >
+          <div className="absolute inset-2 rounded-full bg-white/10" />
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="bg-white/20 p-2 sm:p-2.5 rounded-full mb-1">
+              {boostActive
+                ? <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" strokeWidth={2.5} />
+                : <IndianRupee className="w-6 h-6 sm:w-8 sm:h-8 text-white" strokeWidth={2.5} />
+              }
+            </div>
+            <span className="text-white font-black lg:text-[18px] sm:text-xs">
+              {boostActive ? '2X BOOST!' : 'TAP KARO!'}
+            </span>
+          </div>
+        </div>
+        <p className={`lg:text-[14px] sm:text-[10px] ${t.text.tertiary}`}>
+          {boostActive ? '⚡ Tap Anywhere!' : `Tap Anywhere • ₹${currentPerClick}/click`}
         </p>
       </div>
     </div>
   );
-};
+}
 
 export default ClickerZone;
