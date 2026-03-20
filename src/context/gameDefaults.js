@@ -4,7 +4,7 @@ import { EARNINGS_DEFAULTS } from './EarningsContext';
 import { calcTotalIncome } from './helpers/incomeCalculator';
 
 export const DEFAULTS = {
-  balance: 1000000000000000,
+  balance: 0,
   activeCardId: 'base',
   cardNumber: '1042',
 
