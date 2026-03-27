@@ -1,3 +1,4 @@
+// src/components/earnings/ClickerZone.jsx
 import { useState, useRef, useEffect } from 'react';
 import { IndianRupee, Sparkles, Play, Loader2, Zap } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
@@ -20,7 +21,7 @@ function ClickerZone() {
   const containerRef = useRef(null);
   const timers = useRef([]);
   const isTouchDevice = useRef(false);
-  const processedTouches = useRef(new Set()); 
+  const processedTouches = useRef(new Set()); // 🔑 Track processed touch IDs
 
   useEffect(() => {
     return () => timers.current.forEach(id => clearTimeout(id));
@@ -67,14 +68,14 @@ function ClickerZone() {
 
     animatePress();
 
-    // Use changedTouches - only NEW touches, not all active touches
+    // 🔑 Use changedTouches - only NEW touches, not all active touches
     const newTouches = e.changedTouches;
     
     for (let i = 0; i < newTouches.length; i++) {
       const touch = newTouches[i];
       const touchId = touch.identifier;
       
-      // Skip if already processed this touch
+      // 🔑 Skip if already processed this touch
       if (processedTouches.current.has(touchId)) {
         continue;
       }
@@ -90,7 +91,7 @@ function ClickerZone() {
 
   // ═══ TOUCH END - Cleanup processed touches ═══
   const handleTouchEnd = (e) => {
-    // Remove ended touches from tracking
+    // 🔑 Remove ended touches from tracking
     const endedTouches = e.changedTouches;
     for (let i = 0; i < endedTouches.length; i++) {
       processedTouches.current.delete(endedTouches[i].identifier);

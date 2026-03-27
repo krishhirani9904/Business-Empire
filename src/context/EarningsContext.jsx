@@ -126,7 +126,7 @@ export function EarningsProvider({
   // ─── Refs ───
   const timerRef = useRef(null);
   const stateChangeRef = useRef(null);
-  const adStatusRef = useRef(adStatus); 
+  const adStatusRef = useRef(adStatus); // Track adStatus for timer callback
 
   // Keep adStatusRef in sync
   useEffect(() => {
@@ -175,7 +175,7 @@ export function EarningsProvider({
   }, [resetSignal]);
 
   // ═══════════════════════════════════════
-  // BOOST TIMER EFFECT
+  // BOOST TIMER EFFECT (FIXED)
   // ═══════════════════════════════════════
   // Future: When real ads are added, startAd will show actual ad
   // and only call activateBoost() after ad completion callback
@@ -380,8 +380,8 @@ export function EarningsProvider({
     handleTap,
     handleUpgrade,
     startAd,
-    activateBoost,  
-    cancelAd,       
+    activateBoost,  // For future ad integration
+    cancelAd,       // For future ad integration
     resetEarnings,
   }), [
     level, perClick, upgradeCost, totalClicks,
