@@ -1,8 +1,31 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+// vite.config.js
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(),tailwindcss()],
-})
+export default defineConfig(({ mode }) => {
+  // Environment variables load karo
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
+    plugins: [
+      react(), 
+      tailwindcss(),
+      // HTML Transform Plugin - Game ID inject karse
+      {
+        name: 'html-transform',
+        transformIndexHtml(html) {
+          return html.replace(
+            '%VITE_GD_GAME_ID%',
+            env.VITE_GD_GAME_ID || ''
+          );
+        }
+      }
+    ],
+    build: {
+      target: 'esnext',
+      minify: 'esbuild',
+      sourcemap: false,
+    },
+  };
+});

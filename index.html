@@ -1,16 +1,72 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" href="/logo1-bg.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f59e0b" />
     <meta name="description" content="Dhan-Manthan — The Ultimate Business Tycoon Game" />
-    <title>Dhan-Manthan</title>
+    <title>Zon-Bizz</title>
+    <script>
+        // Development ma ad errors hide karo (Optional)
+        if (window.location.hostname === 'localhost' || 
+            window.location.hostname.includes('10.145')) {
+            
+            // Console filter
+            const originalError = console.error;
+            console.error = function(...args) {
+                const errorStr = args.join(' ');
+                
+                // Aa errors ignore karo
+                if (
+                    errorStr.includes('HeaderLift') ||
+                    errorStr.includes('digest') ||
+                    errorStr.includes('403') ||
+                    errorStr.includes('Handler scope is deprecated')
+                ) {
+                    return; // Suppress
+                }
+                
+                originalError.apply(console, args);
+            };
+        }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- GameDistribution SDK Integration -->
+    <script>
+        window["GD_OPTIONS"] = {
+        gameId: "%VITE_GD_GAME_ID%",  // Environment variable thi load thase
+        advertisementSettings: {
+            autoplay: false,
+            debug: false  // Set to false in production
+            },
+            onEvent: function(event) {
+                switch (event.name) {
+                    case "SDK_READY":
+                        console.log("SDK Ready che!");
+                        break;
+                    case "SDK_GAME_START":
+                        console.log("Game start thai gayo");
+                        break;
+                    case "SDK_GAME_PAUSE":
+                        console.log("Game pause thayo - ad dekhadse");
+                        break;
+                    case "AD_ERROR":
+                    case "AD_SDK_CANCELED":
+                        // Development ma ye errors normal che
+                        if (!window.location.hostname.includes('localhost')) {
+                            console.log("⚠️ Ad Issue:", event.name);
+                        }
+                        break;
+                }
+            }
+        };
+    </script>
+    <script src="https://html5.api.gamedistribution.com/main.min.js"></script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
